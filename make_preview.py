@@ -13,7 +13,7 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='waiting', subcaps_status='done', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='waiting', subcaps_status='done', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
@@ -26,7 +26,7 @@ seeds = [
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v8';
+const demoKey='delavnica-predogled-v9';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
@@ -43,7 +43,7 @@ async function api(path,method='GET',body){
  if(path==='/api/jobs'&&method==='POST'){
   const id=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
   const j={id,version:1,created:stamp,updated:stamp,...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',archived:false,...body};
-  for(const [stage,shipping] of sheetPairs){if(j[stage]==='na')j[shipping]='na';else if(j[shipping]==='na')j[shipping]='waiting';}
+  for(const [stage,shipping] of shipmentPairs){if(j[stage]==='na')j[shipping]='na';else if(j[shipping]==='na')j[shipping]='waiting';}
   j.archived=allShipped(j);
   demoState.jobs.unshift(j);log(j,'created','',j.code);saveDemo();return structuredClone(j);
  }
@@ -52,10 +52,11 @@ async function api(path,method='GET',body){
   if(body.version!==j.version){const e=new Error('Nalog je medtem spremenjen. Odpri ga znova.');e.status=409;throw e;}
   const patch={...body};delete patch.version;
   for(const [text,status] of [['anchors','anchors_status'],['small_material','small_material_status'],['caps','caps_status'],['subcaps','subcaps_status']])if(text in patch&&patch[text]!==j[text]&&(j[status]==='done'||(['caps','subcaps'].includes(text)&&j[status]==='na'&&patch[text]))&&!(status in patch))patch[status]='waiting';
+  for(const [preparation,shipping] of shipmentPairs)if(preparation in patch&&patch[preparation]!==j[preparation]&&!['done','na'].includes(patch[preparation])&&j[shipping]==='done'&&!(shipping in patch))patch[shipping]='waiting';
   const next={...j,...patch};
-  for(const [stage,shipping] of sheetPairs){if(next[stage]==='na'&&next[shipping]!=='na')patch[shipping]='na';else if(next[stage]!=='na'&&next[shipping]==='na')patch[shipping]='waiting';}
+  for(const [stage,shipping] of shipmentPairs){if(next[stage]==='na'&&next[shipping]!=='na')patch[shipping]='na';else if(next[stage]!=='na'&&next[shipping]==='na')patch[shipping]='waiting';}
   if(patch.archived===false&&j.archived&&allShipped(j))patch.dispatch='waiting';
-  if(['dispatch','sheet_dispatch','sheet','raw_sheet','raw_sheet_dispatch'].some(k=>k in patch)){const n={...j,...patch};patch.archived=allShipped(n);}
+  if(['dispatch',...shipmentPairs.flatMap(([stage,shipping])=>[stage,shipping])].some(k=>k in patch)){const n={...j,...patch};patch.archived=allShipped(n);}
   for(const [k,v]of Object.entries(patch))if(j[k]!==v){log(j,k,j[k],v);j[k]=v;}
   j.version++;j.updated=stamp;saveDemo();return structuredClone(j);
  }
