@@ -97,8 +97,19 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je devet integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je enajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
 Ob zagonu se obstoječim nalogom samodejno doda odprema pločevine. Aktivni nalogi s potrebno pločevino dobijo status »Čaka«. Že odpremljeni arhivirani nalogi ostanejo zaključeni (stara enotna odprema se razume kot odprema obeh delov). Pred nadgradnjo naredi varnostno kopijo podatkov. Uporabi `git pull --ff-only` in `docker compose up -d --build`.
+
+## Barvana in surova pločevina na istem nalogu
+
+V pregledu sta pri pločevini in njeni odpremi dve vrstici: **Barvana** in **Surova**. Obe vrsti sta lahko potrebni na istem nalogu. Vsaka ima svoj status in ločeno odpremo. Nepotrebno vrsto označi z »Ni potrebno«.
+
+- Barvana: ni potrebna / za naročiti / naročeno / čaka barvanje / na barvanju / pripravljena / zastoj.
+- Surova: ni potrebna / za naročiti / naročeno / v pripravi / pripravljena / zastoj. Barvanja pri njej ni.
+- Primer: fasada in surova pločevina sta že odšli, barvana pa še čaka barvanje. Nalog ostane med aktivnimi in delno odpremljenimi.
+- Arhiviranje zahteva odpremo fasade in obeh vrst pločevine, ki sta označeni kot potrebni.
+
+Ob nadgradnji ostanejo dosedanji statusi pločevine pod »Barvana«. Nova surova pločevina je privzeto »Ni potrebno«; obstoječih podatkov ne razvrščamo samodejno po vrsti. Če se dosedanji status nanaša na surovo pločevino, ga uporabnik prenese na surovo vrstico in barvano po potrebi označi kot nepotrebno. Že arhivirani nalogi ostanejo arhivirani.
