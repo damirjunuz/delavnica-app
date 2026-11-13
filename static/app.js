@@ -1,11 +1,11 @@
 'use strict';
 const $ = s => document.querySelector(s);
-const fields = ['documentation','material','cutting','machining','assembly','packing','sheet','dispatch'];
-const labels = {documentation:'Dokumentacija',material:'Material',cutting:'Razrez',machining:'Obdelava',assembly:'Sestavljanje',packing:'Pakiranje',sheet:'Pločevina',dispatch:'Odprema',code:'Nalog',title:'Objekt',due:'Rok',owner:'Odgovorna oseba',notes:'Opombe',archived:'Arhiv',created:'Nalog ustvarjen'};
-const baseStatus = {waiting:'Čaka',active:'V delu',done:'Končano',blocked:'Zastoj',ordered:'Naročeno',painting:'Na barvanju',na:'Ni potrebno'};
-const special = {documentation:{waiting:'Čaka',active:'V pregledu',done:'Sprejeta'},material:{waiting:'Za naročiti',done:'Pripravljeno'},sheet:{waiting:'Za naročiti',done:'Pripravljena'},dispatch:{waiting:'Čaka',done:'Odpremljeno'}};
-const options = Object.fromEntries(fields.map(k => [k,k==='material'?['waiting','ordered','done','blocked']:k==='sheet'?['na','waiting','ordered','painting','done','blocked']:k==='dispatch'?['waiting','done','blocked']:['waiting','active','done','blocked',...(k==='documentation'?[]:['na'])]]));
-const filters = [['all','Vsi aktivni'],['work','V delu'],['blocked','Zastoji'],['ready','Za odpremo'],['archive','Arhiv']];
+const fields = ['documentation','material','cutting','machining','assembly','packing','sheet','dispatch','sheet_dispatch'];
+const labels = {documentation:'Dokumentacija',material:'Material',cutting:'Razrez',machining:'Obdelava',assembly:'Sestavljanje',packing:'Pakiranje',sheet:'Pločevina',dispatch:'Odprema fasade',sheet_dispatch:'Odprema pločevine',code:'Nalog',title:'Objekt',due:'Rok',owner:'Odgovorna oseba',notes:'Opombe',archived:'Arhiv',created:'Nalog ustvarjen'};
+const baseStatus = {waiting:'Čaka',active:'V delu',done:'Končano',blocked:'Zastoj',ordered:'Naročeno',painting:'Na barvanju',awaiting_paint:'Čaka barvanje',na:'Ni potrebno'};
+const special = {documentation:{waiting:'Čaka',active:'V pregledu',done:'Sprejeta'},material:{waiting:'Za naročiti',done:'Pripravljeno'},sheet:{waiting:'Za naročiti',done:'Pripravljena'},dispatch:{waiting:'Čaka',done:'Fasada odšla'},sheet_dispatch:{waiting:'Čaka',done:'Pločevina odšla'}};
+const options = Object.fromEntries(fields.map(k => [k,k==='material'?['waiting','ordered','done','blocked']:k==='sheet'?['na','waiting','ordered','awaiting_paint','painting','done','blocked']:k==='sheet_dispatch'?['waiting','done','blocked','na']:k==='dispatch'?['waiting','done','blocked']:['waiting','active','done','blocked',...(k==='documentation'?[]:['na'])]]));
+const filters = [['all','Vsi aktivni'],['work','V delu'],['blocked','Zastoji'],['ready','Za odpremo'],['partial','Delno odpremljeno'],['archive','Arhiv']];
 let jobs=[], actor='', filter='all', search='', editing=null, draft=null, choice=null, loading=false, toastTimer;
 const esc = x => String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const textStatus = (field,value) => special[field]?.[value] || baseStatus[value] || value;
@@ -13,8 +13,13 @@ const day = () => new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Ljubljana'})
 const date = x => x ? new Intl.DateTimeFormat('sl-SI',{day:'numeric',month:'numeric',year:'numeric',timeZone:'Europe/Ljubljana'}).format(new Date(x.length===10 ? x+'T12:00:00' : x)) : 'Brez roka';
 const timestamp = x => new Intl.DateTimeFormat('sl-SI',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Ljubljana'}).format(new Date(x));
 const blocked = j => fields.some(k=>j[k]==='blocked');
-const working = j => fields.some(k=>['active','ordered','painting'].includes(j[k]));
-const ready = j => fields.filter(k=>k!=='dispatch').every(k=>['done','na'].includes(j[k]));
+const working = j => fields.some(k=>['active','ordered','awaiting_paint','painting'].includes(j[k]));
+const facadeReady = j => ['documentation','material','cutting','machining','assembly','packing'].every(k=>['done','na'].includes(j[k]));
+const ready = j => (j.dispatch!=='done'&&facadeReady(j))||(j.sheet==='done'&&j.sheet_dispatch!=='done');
+const partial = j => !j.archived&&(j.dispatch==='done'||j.sheet_dispatch==='done');
+const shipmentSummary = j => partial(j) ? (j.dispatch==='done' ? 'Fasada odšla · '+(j.sheet==='done'?'pločevina čaka odpremo':'pločevina '+textStatus('sheet',j.sheet).toLocaleLowerCase('sl')) : 'Pločevina odšla · fasada čaka odpremo') : '';
+function syncDraftShipping(){if(draft.sheet==='na')draft.sheet_dispatch='na';else if(draft.sheet_dispatch==='na')draft.sheet_dispatch='waiting';}
+
 const statusButton = (j,k,detail=false) => `<button type="button" class="status ${esc(j[k])}" data-${detail?'draft':'status'}="${k}" data-id="${esc(j.id)}" aria-label="${esc(labels[k]+': '+textStatus(k,j[k])+'. Spremeni status naloga '+j.code)}">${esc(textStatus(k,j[k]))}</button>`;
 
 function toast(message,bad=false){clearTimeout(toastTimer);$('#toast').textContent=message;$('#toast').className='toast'+(bad?' bad':'');$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,bad?8000:3000);}
@@ -39,11 +44,11 @@ function render(){
  const metrics=[['Aktivni nalogi',active.length,'▤','all',''],['V delu',active.filter(working).length,'◷','work','warn'],['Zastoji',active.filter(blocked).length,'!','blocked','danger'],['Pripravljeno za odpremo',active.filter(ready).length,'✓','ready','good']];
  $('#metrics').innerHTML=metrics.map(([name,n,icon,f,c])=>`<button class="metric ${c}" data-filter="${f}"><div><div class="metric-label">${name}</div><div class="metric-number">${n.toString().padStart(2,'0')}</div></div><span class="metric-symbol" aria-hidden="true">${icon}</span></button>`).join('');
  $('#filters').innerHTML=filters.map(([key,label])=>`<button data-filter="${key}" class="${key===filter?'selected':''}" aria-pressed="${key===filter}">${label}${key==='archive'?' ('+jobs.filter(j=>j.archived).length+')':''}</button>`).join('');
- const visible=jobs.filter(j=>(filter==='archive'?j.archived:!j.archived)&&(filter!=='work'||working(j))&&(filter!=='blocked'||blocked(j))&&(filter!=='ready'||ready(j))&&[j.code,j.title,j.owner,j.notes].join(' ').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl'))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created.localeCompare(a.created));
+ const visible=jobs.filter(j=>(filter==='archive'?j.archived:!j.archived)&&(filter!=='work'||working(j))&&(filter!=='blocked'||blocked(j))&&(filter!=='ready'||ready(j))&&(filter!=='partial'||partial(j))&&[j.code,j.title,j.owner,j.notes].join(' ').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl'))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created.localeCompare(a.created));
  $('#resultCount').textContent=`${visible.length} ${visible.length===1?'nalog':'nalogov'} · ${filter==='archive'?'arhiv':'razvrščeno po roku'}`;
  $('#rows').innerHTML=visible.map(j=>{
   const late=j.due&&j.due<day()&&!j.archived;
-  return `<tr class="${late?'late':''}"><td><button class="job-link" data-edit="${j.id}"><span class="job-code">${esc(j.code)}</span><span class="job-title" title="${esc(j.title)}">${esc(j.title)}</span><span class="job-owner">${esc(j.owner||'Odgovorna oseba še ni določena')}</span></button></td><td class="due ${late?'overdue':''}">${esc(date(j.due))}${late?'<small>Rok je potekel</small>':''}</td>${fields.map(k=>`<td>${statusButton(j,k)}</td>`).join('')}<td><button class="dots" data-edit="${j.id}" aria-label="Podrobnosti naloga ${esc(j.code)}">⋯</button></td></tr>`;
+  return `<tr class="${late?'late':''}"><td><button class="job-link" data-edit="${j.id}"><span class="job-code">${esc(j.code)}</span><span class="job-title" title="${esc(j.title)}">${esc(j.title)}</span><span class="job-owner">${esc(j.owner||'Odgovorna oseba še ni določena')}</span>${partial(j)?'<span class="shipment-summary">'+esc(shipmentSummary(j))+'</span>':''}</button></td><td class="due ${late?'overdue':''}">${esc(date(j.due))}${late?'<small>Rok je potekel</small>':''}</td>${fields.map(k=>`<td>${statusButton(j,k)}</td>`).join('')}<td><button class="dots" data-edit="${j.id}" aria-label="Podrobnosti naloga ${esc(j.code)}">⋯</button></td></tr>`;
  }).join('');
  $('#empty').hidden=visible.length>0;
  $('#emptyTitle').textContent=jobs.length===0?'Prvi nalog, jasen začetek.':'V tem pogledu ni nalogov.';
@@ -56,12 +61,12 @@ function renderDraftStages(){
 async function openJob(id=null){
  editing=id?structuredClone(jobs.find(j=>j.id===id)):null;
  if(id&&!editing)return;
- draft=editing?structuredClone(editing):{id:'new',...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',code:'',title:'',due:'',owner:actor,notes:'',archived:false};
+ draft=editing?structuredClone(editing):{id:'new',...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',sheet_dispatch:'na',code:'',title:'',due:'',owner:actor,notes:'',archived:false};
  $('#jobForm').reset();
  for(const k of ['code','title','due','owner','notes'])$('#jobForm').elements[k].value=draft[k]||'';
  $('#dialogTitle').textContent=editing?editing.code:'Nov nalog';$('#formError').textContent='';
  $('#historySection').hidden=!editing;
- $('#archiveArea').innerHTML=editing?`<button type="button" class="secondary" id="archiveJob">${editing.archived?'↶ Vrni med aktivne naloge':'Premakni v arhiv'}</button><p class="hint">${editing.archived?'Če je nalog odpremljen, se ob vrnitvi odprema ponastavi na »Čaka«.':'Arhiviranje ne potrdi odpreme. Nalog ostane shranjen.'}</p>`:'';
+ $('#archiveArea').innerHTML=editing?.archived?'<button type="button" class="secondary" id="archiveJob">↶ Vrni med aktivne naloge</button><p class="hint">Ob vrnitvi zaključenega naloga se odprema fasade ponastavi na »Čaka«.</p>':'<p class="hint">Nalog gre samodejno v arhiv šele po odpremi fasade in vse potrebne pločevine.</p>';
  renderDraftStages();$('#jobDialog').showModal();
  $('#jobForm').elements.code.focus();
  if(editing){
@@ -77,17 +82,17 @@ function openStatus(id,field,isDraft=false){
  const j=isDraft?draft:jobs.find(x=>x.id===id);if(!j)return;
  choice={id,field,isDraft,version:j.version};
  $('#statusJob').textContent=j.code||'Nov nalog';$('#statusTitle').textContent=labels[field];$('#statusError').textContent='';
- $('#dispatchHint').hidden=field!=='dispatch';
- $('#statusChoices').innerHTML=options[field].map(v=>`<button type="button" class="status ${v} ${j[field]===v?'chosen':''}" data-choice="${v}" aria-pressed="${j[field]===v}"><span>${esc(textStatus(field,v))}</span><span>${j[field]===v?'✓':''}</span></button>`).join('');
+ $('#dispatchHint').hidden=!['dispatch','sheet_dispatch'].includes(field);
+ $('#statusChoices').innerHTML=options[field].filter(v=>field!=='sheet_dispatch'||(j.sheet==='na'?v==='na':v!=='na')).map(v=>`<button type="button" class="status ${v} ${j[field]===v?'chosen':''}" data-choice="${v}" aria-pressed="${j[field]===v}"><span>${esc(textStatus(field,v))}</span><span>${j[field]===v?'✓':''}</span></button>`).join('');
  $('#statusDialog').showModal();
 }
 async function selectStatus(value){
  const c=choice;if(!c)return;
- if(c.field==='dispatch'&&value==='done'){
+ if(['dispatch','sheet_dispatch'].includes(c.field)&&value==='done'){
   const j=c.isDraft?draft:jobs.find(x=>x.id===c.id);
-  if(!ready(j)&&!confirm('Nekatere faze še niso zaključene. Vseeno potrdiš odpremo in premakneš nalog v arhiv?'))return;
+  if((c.field==='dispatch'?!facadeReady(j):j.sheet!=='done')&&!confirm('Ta del še ni označen kot pripravljen. Vseeno potrdiš njegovo odpremo? Preostali deli ostanejo odprti.'))return;
  }
- if(c.isDraft){draft[c.field]=value;renderDraftStages();$('#statusDialog').close();return;}
+ if(c.isDraft){draft[c.field]=value;syncDraftShipping();renderDraftStages();$('#statusDialog').close();return;}
  $('#statusChoices').querySelectorAll('button').forEach(b=>b.disabled=true);
  try{await api(`/api/jobs/${c.id}`,'PATCH',{version:c.version,[c.field]:value});$('#statusDialog').close();toast('Status je shranjen.');await load();}
  catch(e){$('#statusError').textContent=e.message;if(e.status===409){await load().catch(()=>{});$('#statusError').textContent+=' Zapri izbiro statusa in jo odpri znova.';}}
