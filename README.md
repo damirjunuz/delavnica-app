@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je štirinajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je petnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -137,3 +137,9 @@ Statusi v odprtem projektu se shranijo takoj. Skladiščnik lahko sidra in drobn
 Barvana in surova pločevina imata novo stanje **V izdelavi**. Vsaka vrsta ima svoj datum **Oddani papirji**, ki se pokaže ob njenem statusu v tabeli in v mobilnem projektu. Klikni datum oziroma **＋ Vpiši datum**, izberi dejanski dan predaje dokumentacije ter potrdi **Shrani datum**. Datum je mogoče vpisati tudi v obrazcu za urejanje naloga.
 
 Datum se ne ugiba iz dneva spremembe statusa; vpiše ga uporabnik in ostane shranjen tudi ob nadaljnjem barvanju ali odpremi. Za stare naloge ostane prazen, dokler ga uporabnik ne vpiše. Vsaka sprememba datuma se zabeleži v zgodovini. Vnos za barvano in surovo pločevino je ločen.
+
+## Kape in podkape
+
+Nova samostojna rubrika vsebuje ločena seznama **Kape** in **Podkape**. Vpišeš tip, mere, barvo in količino v podrobnostih naloga. Vsak seznam ima svojo pripravo: **Ni potrebno / Čaka pripravo / ✓ Pripravljeno**. V glavnem pregledu in mobilnem projektu se priprava potrdi z enim klikom; ponoven klik vrne čakanje.
+
+Prazni novi in obstoječi nalogi imajo obe skupini označeni kot nepotrebni. Ko vpišeš seznam, se njegova skupina aktivira kot »Čaka pripravo«. Sprememba že potrjenega seznama zahteva ponovno pripravo. Statusa sta del pregleda pripravljenosti fasade za odpremo, spremembe pa so v zgodovini. Na telefonu je rubrika »Kape in podkape« v odprtem projektu, na računalniku v svojem stolpcu.
