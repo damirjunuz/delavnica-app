@@ -2,7 +2,7 @@
 const $ = s => document.querySelector(s);
 const fields = ['documentation','material','cutting','machining','assembly','packing','sheet','dispatch','sheet_dispatch','raw_sheet','raw_sheet_dispatch','anchors_status','small_material_status','caps_status','subcaps_status','anchors_dispatch','small_material_dispatch','caps_dispatch','subcaps_dispatch'];
 const labels = {documentation:'Dokumentacija',material:'Material',cutting:'Razrez',machining:'Obdelava',assembly:'Sestavljanje',packing:'Pakiranje',sheet:'Barvana pločevina',raw_sheet:'Surova pločevina',dispatch:'Odprema fasade',sheet_dispatch:'Odprema barvane pločevine',raw_sheet_dispatch:'Odprema surove pločevine',code:'Nalog',title:'Objekt',due:'Rok',owner:'Odgovorna oseba',notes:'Opombe',sheet_papers_date:'Oddani papirji – barvana pločevina',raw_sheet_papers_date:'Oddani papirji – surova pločevina',anchors_dispatch:'Odprema sider',small_material_dispatch:'Odprema drobnega materiala',caps_dispatch:'Odprema kap',subcaps_dispatch:'Odprema podkap',small_material:'Drobni material',caps:'Kape',subcaps:'Podkape',caps_status:'Priprava kap',subcaps_status:'Priprava podkap',anchors:'Sidra',anchors_status:'Priprava sider',small_material_status:'Priprava drobnega materiala',archived:'Arhiv',created:'Nalog ustvarjen'};
-const baseStatus = {waiting:'Čaka',active:'V delu',done:'Končano',blocked:'Zastoj',ordered:'Naročeno',painting:'Na barvanju',manufacturing:'V izdelavi',awaiting_paint:'Čaka barvanje',na:'Ni potrebno'};
+const baseStatus = {waiting:'Čaka',active:'V izdelavi',done:'Končano',blocked:'Zastoj',ordered:'Naročeno',painting:'Na barvanju',manufacturing:'V izdelavi',awaiting_paint:'Čaka barvanje',na:'Ni potrebno'};
 const special = {documentation:{waiting:'Čaka',active:'V pregledu',done:'Sprejeta'},material:{waiting:'Za naročiti',done:'Pripravljeno'},sheet:{waiting:'Za naročiti',done:'Pripravljena'},dispatch:{waiting:'Čaka',done:'Fasada odšla'},sheet_dispatch:{waiting:'Čaka',done:'Odpremljena'},raw_sheet:{waiting:'Za naročiti',active:'V pripravi',done:'Pripravljena'},raw_sheet_dispatch:{waiting:'Čaka',done:'Odpremljena'}};
 special.anchors_status={waiting:'Čaka pripravo',done:'✓ Pripravljeno'};
 special.small_material_status={waiting:'Čaka pripravo',done:'✓ Pripravljeno'};
@@ -10,7 +10,7 @@ special.caps_status={waiting:'Čaka pripravo',done:'✓ Pripravljeno'};
 special.subcaps_status={waiting:'Čaka pripravo',done:'✓ Pripravljeno'};
 for(const key of ['anchors_dispatch','small_material_dispatch','caps_dispatch','subcaps_dispatch'])special[key]={waiting:'Čaka odpremo',done:'Odpremljeno'};
 const options = Object.fromEntries(fields.map(k => [k,['anchors_status','small_material_status','caps_status','subcaps_status'].includes(k)?['waiting','done','na']:k==='material'?['waiting','ordered','done','blocked']:k==='sheet'?['na','waiting','ordered','manufacturing','awaiting_paint','painting','done','blocked']:k==='raw_sheet'?['na','waiting','ordered','active','manufacturing','done','blocked']:['sheet_dispatch','raw_sheet_dispatch','anchors_dispatch','small_material_dispatch','caps_dispatch','subcaps_dispatch'].includes(k)?['waiting','done','blocked','na']:k==='dispatch'?['waiting','done','blocked']:['waiting','active','done','blocked',...(k==='documentation'?[]:['na'])]]));
-const filters = [['all','Vsi aktivni'],['work','V delu'],['blocked','Zastoji'],['ready','Za odpremo'],['partial','Delno odpremljeno'],['archive','Arhiv']];
+const filters = [['all','Vsi aktivni'],['work','V izdelavi'],['blocked','Zastoji'],['ready','Čaka odpremo'],['partial','Delno odpremljeno'],['archive','Arhiv']];
 let jobs=[], actor='', filter='all', search='', editing=null, draft=null, choice=null, loading=false, toastTimer, projectId=null, projectVersion=null, papersChoice=null, completedExpanded=false;
 const esc = x => String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const textStatus = (field,value) => special[field]?.[value] || baseStatus[value] || value;
@@ -77,7 +77,7 @@ function openWork(j){const production=['documentation','material','cutting','mac
 
 function render(){
  const active=jobs.filter(j=>!j.archived);
- const metrics=[['Aktivni nalogi',active.length,'▤','all',''],['V delu',active.filter(working).length,'◷','work','warn'],['Zastoji',active.filter(blocked).length,'!','blocked','danger'],['Pripravljeno za odpremo',active.filter(ready).length,'✓','ready','good']];
+ const metrics=[['Aktivni nalogi',active.length,'▤','all',''],['V izdelavi',active.filter(working).length,'◷','work','warn'],['Zastoji',active.filter(blocked).length,'!','blocked','danger'],['Čaka odpremo',active.filter(ready).length,'✓','ready','good']];
  $('#metrics').innerHTML=metrics.map(([name,n,icon,f,c])=>`<button class="metric ${c}" data-filter="${f}"><div><div class="metric-label">${name}</div><div class="metric-number">${n.toString().padStart(2,'0')}</div></div><span class="metric-symbol" aria-hidden="true">${icon}</span></button>`).join('');
  $('#filters').innerHTML=filters.map(([key,label])=>`<button data-filter="${key}" class="${key===filter?'selected':''}" aria-pressed="${key===filter}">${label}${key==='archive'?' ('+jobs.filter(j=>j.archived).length+')':''}</button>`).join('');
  const visible=jobs.filter(j=>(filter==='archive'?j.archived:!j.archived)&&(filter!=='work'||working(j))&&(filter!=='blocked'||blocked(j))&&(filter!=='ready'||ready(j))&&(filter!=='partial'||partial(j))&&[j.code,j.title,j.owner,j.notes,j.small_material,j.anchors,j.caps,j.subcaps].join(' ').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl'))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created.localeCompare(a.created));
@@ -95,7 +95,7 @@ function render(){
 function projectCard(j){
  const needed=fields.filter(k=>j[k]!=='na'),done=needed.filter(k=>j[k]==='done').length;
  const late=j.due&&j.due<day()&&!j.archived;
- const state=j.archived?'Odpremljeno':blocked(j)?'Zastoj':partial(j)?'Delno odpremljeno':ready(j)?'Za odpremo':working(j)?'V delu':'Čaka';
+ const state=j.archived?'Odpremljeno':blocked(j)?'Zastoj':partial(j)?'Delno odpremljeno':ready(j)?'Čaka odpremo':working(j)?'V izdelavi':'Čaka';
  const tone=j.archived?'done':blocked(j)?'blocked':partial(j)||working(j)?'active':ready(j)?'done':'waiting';
  return `<button type="button" class="project-card" data-open-project="${esc(j.id)}" aria-label="Odpri projekt ${esc(j.code+' · '+j.title)}"><span class="card-top"><strong>${esc(j.code)}</strong><span class="card-state ${tone}">${state}</span></span><span class="card-title">${esc(j.title)}</span><span class="card-meta"><span class="${late?'card-late':''}">${late?'⚠ ':''}${esc(date(j.due))}</span><span>${esc(j.owner||'Brez odgovorne osebe')}</span></span><span class="card-progress"><span>Faze ${done} / ${needed.length}</span><span>${Math.round(done/Math.max(needed.length,1)*100)} %</span></span><span class="progress-track"><span class="progress-fill p${Math.round(done/Math.max(needed.length,1)*10)}"></span></span>${partial(j)?'<span class="card-shipment">'+esc(shipmentSummary(j))+'</span>':''}<span class="card-open">Odpri projekt <span aria-hidden="true">→</span></span></button>`;
 }
