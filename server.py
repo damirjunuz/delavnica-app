@@ -28,10 +28,13 @@ FIELDS = {
     'sheet': ['waiting', 'ordered', 'awaiting_paint', 'painting', 'done', 'blocked', 'na'],
     'dispatch': ['waiting', 'done', 'blocked'],
     'sheet_dispatch': ['waiting', 'done', 'blocked', 'na'],
+    'raw_sheet': ['waiting', 'ordered', 'active', 'done', 'blocked', 'na'],
+    'raw_sheet_dispatch': ['waiting', 'done', 'blocked', 'na'],
 }
 LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
           'machining': 'Obdelava', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
-          'sheet': 'Pločevina', 'dispatch': 'Odprema fasade', 'sheet_dispatch': 'Odprema pločevine', 'code': 'Nalog', 'title': 'Objekt',
+          'sheet': 'Barvana pločevina', 'raw_sheet': 'Surova pločevina', 'dispatch': 'Odprema fasade',
+          'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
           'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'archived': 'Arhiv'}
 STATUS = {'waiting': 'Čaka', 'active': 'V delu', 'done': 'Končano', 'blocked': 'Zastoj',
           'ordered': 'Naročeno', 'awaiting_paint': 'Čaka barvanje', 'painting': 'Na barvanju', 'na': 'Ni potrebno'}
@@ -73,30 +76,40 @@ def init():
         # Keep previous completed orders completed; active orders get a separate pending shipment.
         for row in c.execute('SELECT * FROM jobs').fetchall():
             values = json.loads(row['payload'])
+            changed = False
             if 'sheet_dispatch' not in values:
                 values['sheet_dispatch'] = ('na' if values['sheet'] == 'na' else
                                             'done' if values['archived'] and values['dispatch'] == 'done' else 'waiting')
+                changed = True
+            for field in ('raw_sheet', 'raw_sheet_dispatch'):
+                if field not in values:
+                    values[field] = 'na'
+                    changed = True
+            if changed:
                 c.execute('UPDATE jobs SET payload=?,version=version+1 WHERE id=?', (json.dumps(values), row['id']))
 
 
 def fully_shipped(values):
-    return values['dispatch'] == 'done' and (values['sheet'] == 'na' or values['sheet_dispatch'] == 'done')
+    return values['dispatch'] == 'done' and all(
+        values.get(stage, 'na') == 'na' or values.get(shipping, 'na') == 'done'
+        for stage, shipping in (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch')))
 
 
 def shipment_patch(values, patch):
     """Derive shipping state without discarding a partially delivered order."""
     result = {**values, **patch}
-    if result['sheet'] == 'na' and result.get('sheet_dispatch') != 'na':
-        patch['sheet_dispatch'] = 'na'
-    elif result['sheet'] != 'na' and result.get('sheet_dispatch', 'na') == 'na':
-        patch['sheet_dispatch'] = 'waiting'
+    for stage, shipping in (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch')):
+        if result[stage] == 'na' and result.get(shipping) != 'na':
+            patch[shipping] = 'na'
+        elif result[stage] != 'na' and result.get(shipping, 'na') == 'na':
+            patch[shipping] = 'waiting'
     result.update(patch)
     if patch.get('archived') is False and values.get('archived') and fully_shipped(values):
         patch.setdefault('dispatch', 'waiting')
         result.update(patch)
     if patch.get('archived') is True and not fully_shipped({**values, **patch}):
         raise Problem(400, 'Nalog ostane aktiven, dokler nista odpremljeni fasada in vsa potrebna pločevina.')
-    if {'dispatch', 'sheet_dispatch', 'sheet'} & patch.keys():
+    if {'dispatch', 'sheet_dispatch', 'sheet', 'raw_sheet', 'raw_sheet_dispatch'} & patch.keys():
         patch['archived'] = fully_shipped(result)
     return patch
 
@@ -261,9 +274,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {'ok': True}, cookie='session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + ('; Secure' if SECURE else ''))
             if path == '/api/jobs' and self.command == 'POST':
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na'})
+                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
                 values.update(validate(data, create=True))
-                values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'dispatch')}))
+                values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'raw_sheet', 'raw_sheet_dispatch', 'dispatch')}))
                 uid, stamp = secrets.token_hex(12), now()
                 with connect() as c:
                     c.execute('INSERT INTO jobs VALUES (?,?,?,?,?)', (uid, 1, json.dumps(values), stamp, stamp))
