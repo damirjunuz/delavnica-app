@@ -166,6 +166,10 @@ Aktivno delo je označeno kot **V izdelavi**, pripravljena neodpremljena faza oz
 
 ## Izbira »V izdelavi« pri kapah, podkapah in pločevini
 
-Pri kapah in podkapah klik na **Pripravo** odpre izbiro **Ni potrebno / Čaka izdelavo / V izdelavi / Pripravljeno**; ne potrdi več samodejno priprave. Sidra in drobni material še vedno uporabljata hitro potrditev z enim klikom.
+Pri kapah in podkapah klik na **Pripravo** odpre izbiro **Ni potrebno / Čaka izdelavo / V izdelavi / Izdelano**; ne potrdi več samodejno priprave. Sidra in drobni material še vedno uporabljata hitro potrditev z enim klikom.
 
 Pri neodpremljeni barvani in surovi pločevini ter kapah/podkapah ostane gumb **Priprava** viden tudi po oznaki »Pripravljeno«. Zato je mogoče ponovno izbrati **V izdelavi**, namesto da bi bila vidna le odprema. Odprema je ločen gumb. Že odpremljeni deli so še vedno pod »Zaključeno«; sprememba njihove priprave na »V izdelavi« ponovno odpre samo njihovo odpremo in projekt ohrani ostale odpreme.
+
+## Izdelano in odpremljeno
+
+Kape, podkape ter barvana in surova pločevina imajo ločeni stopnji **Izdelano** in **Odpremljeno**. Pri pripravi izbereš **V izdelavi** ali **Izdelano**. Pri odpremi nato posebej izbereš **Odpremljeno**. Izdelani deli ostanejo med odprtim delom in čakajo odpremo; v »Zaključeno« se skupina umakne šele po odpremi. Dosedanje oznake »Pripravljeno« pri teh štirih skupinah se prikažejo kot »Izdelano«; obstoječa stanja in podatki ostanejo ohranjeni.
