@@ -149,6 +149,38 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertTrue(j['archived'])
 
+    def test_mixed_sheet_types_ship_independently(self):
+        c = self.login()
+        j = self.create(c, sheet='awaiting_paint', raw_sheet='done')
+        self.assertEqual(j['raw_sheet_dispatch'], 'waiting')
+        def patch(**values):
+            nonlocal j
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], **values}, c)
+            self.assertEqual(status, 200, j)
+        patch(raw_sheet_dispatch='done', dispatch='done')
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['sheet'], 'awaiting_paint')
+        self.assertEqual(j['raw_sheet'], 'done')
+        patch(sheet='painting')
+        self.assertEqual(j['raw_sheet_dispatch'], 'done')
+        patch(sheet='done', sheet_dispatch='done')
+        self.assertTrue(j['archived'])
+        patch(raw_sheet_dispatch='waiting')
+        self.assertFalse(j['archived'])
+        patch(raw_sheet='na')
+        self.assertTrue(j['archived'])
+        self.assertEqual(j['raw_sheet_dispatch'], 'na')
+
+    def test_raw_sheet_has_no_painting_step(self):
+        c = self.login()
+        j = self.create(c, raw_sheet='ordered')
+        status, _, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'raw_sheet': 'painting'}, c)
+        self.assertEqual(status, 400)
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'raw_sheet': 'active'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['raw_sheet'], 'active')
+        self.assertEqual(j['sheet'], 'na')
+
     def test_upgrade_preserves_legacy_orders(self):
         c = self.login()
         active = self.create(c, sheet='painting')
@@ -157,6 +189,8 @@ class WorkshopTests(unittest.TestCase):
             for j in (active, complete):
                 payload = json.loads(db.execute('SELECT payload FROM jobs WHERE id=?', (j['id'],)).fetchone()[0])
                 del payload['sheet_dispatch']
+                del payload['raw_sheet']
+                del payload['raw_sheet_dispatch']
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -167,6 +201,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertFalse(jobs[active['id']]['archived'])
         self.assertEqual(jobs[complete['id']]['sheet_dispatch'], 'done')
         self.assertTrue(jobs[complete['id']]['archived'])
+        self.assertEqual(jobs[active['id']]['raw_sheet'], 'na')
+        self.assertEqual(jobs[complete['id']]['raw_sheet_dispatch'], 'na')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
