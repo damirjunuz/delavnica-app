@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je enajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je dvanajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -113,3 +113,9 @@ V pregledu sta pri pločevini in njeni odpremi dve vrstici: **Barvana** in **Sur
 - Arhiviranje zahteva odpremo fasade in obeh vrst pločevine, ki sta označeni kot potrebni.
 
 Ob nadgradnji ostanejo dosedanji statusi pločevine pod »Barvana«. Nova surova pločevina je privzeto »Ni potrebno«; obstoječih podatkov ne razvrščamo samodejno po vrsti. Če se dosedanji status nanaša na surovo pločevino, ga uporabnik prenese na surovo vrstico in barvano po potrebi označi kot nepotrebno. Že arhivirani nalogi ostanejo arhivirani.
+
+## Ročne opombe in drobni material
+
+Klikni oznako naloga. V polje **Opombe / kaj manjka** vpiši navodila ali dogovor, v ločeno večvrstično polje **Drobni material** pa vijake, sidra, tesnila in količine. Primer: »Vijaki M8 – 24 kos; sidra – 12 kos«. Obe polji omogočata do 4000 znakov; vpis potrdi z **Shrani nalog**.
+
+Kratka vsebina obeh polj je vidna pod oznako naloga v glavni tabeli, celoten zapis pa v podrobnostih. Iskalnik pregleduje tudi drobni material. Spremembe se zabeležijo v zgodovini z imenom in časom. Obstoječe opombe ostanejo ohranjene, novi drobni material je pri starih nalogih prazen. Vpis drobnega materiala ne spremeni barvnega statusa naročila materiala in ne vodi zaloge.
