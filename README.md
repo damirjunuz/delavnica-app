@@ -11,9 +11,9 @@ Odpri **predogled.html** z dvoklikom. To je samostojen interaktivni predogled z 
 - Vsak sodelavec se prijavi s svojim imenom in skupnim geslom delavnice. Ime je samoprijavljeno, brez preverjanja identitete; vsak prijavljeni lahko ustvarja in ureja vse naloge. Ločenih vlog vodje/delavca še ni.
 - Klik na status odpre izbiro. Siva: čaka. Rumena: v delu ali naročeno. Zelena: zaključeno/pripravljeno. Rdeča: zastoj. Vijolična pri pločevini: na barvanju. »Ni potrebno« preskoči neuporabljeno fazo.
 - Klik na oznako naloga odpre rok, odgovorno osebo, opombe, faze in zadnjih 300 sprememb. Spremembe v tem obrazcu potrdiš z »Shrani nalog«. Statusi v glavni tabeli se shranijo takoj po izbiri.
-- Material: za naročiti / naročeno / pripravljeno / zastoj. Pločevina: ni potrebna / za naročiti / naročeno / na barvanju / pripravljena / zastoj.
-- »Za odpremo« pokaže naloge, pri katerih so vse faze razen odpreme končane ali označene kot nepotrebne. Status »Odpremljeno« samodejno premakne nalog v arhiv. Ob nedokončanih fazah zahteva potrditev.
-- Arhiviranje brez odpreme je možno v podrobnostih. Ni brisanja nalogov; iz arhiva jih lahko vrneš med aktivne. Če je bil nalog odpremljen, se odprema ob vrnitvi ponastavi na »Čaka«.
+- Material: za naročiti / naročeno / pripravljeno / zastoj. Pločevina: ni potrebna / za naročiti / naročeno / čaka barvanje / na barvanju / pripravljena / zastoj.
+- Fasado in pločevino odpremiš ločeno. »Fasada odšla« ne zaključi naloga, kadar pločevina še ni odpremljena. Status pločevine vključuje tudi »Čaka barvanje«. Filter »Delno odpremljeno« in oznaka pod nalogom pokažeta, kaj je že odšlo in kaj še čaka. »Za odpremo« pokaže naloge, kjer je vsaj en neodpremljen del pripravljen.
+- Nalog se samodejno arhivira šele, ko sta odpremljeni fasada in vsa potrebna pločevina. Če pločevina ni potrebna, zadostuje odprema fasade. Ni brisanja nalogov; iz arhiva jih lahko vrneš med aktivne. Ob vrnitvi zaključenega naloga se odprema fasade ponastavi na »Čaka«. Ob ponovnem odprtju odpreme katerega od delov se nalog vrne med aktivne.
 - Aktivni nalogi so urejeni po roku; zamujeni imajo opozorilo. Filtri: vsi aktivni, v delu, zastoji, za odpremo, arhiv. Iskanje pregleduje oznako, objekt, odgovorno osebo in opombe.
 - Skupni pregled se osveži na 10 sekund, tudi ob vrnitvi v zavihek. Sočasne spremembe istega naloga se zaznajo: druga sprememba dobi opozorilo, da ponovno odpre nalog. Aplikacija ne prepiše tiho tujih sprememb. Ob izpadu povezave ne potrdi uspešnega shranjevanja.
 
@@ -97,4 +97,8 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je šest integracijskih preizkusov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je devet integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+
+## Nadgradnja na ločeno odpremo
+
+Ob zagonu se obstoječim nalogom samodejno doda odprema pločevine. Aktivni nalogi s potrebno pločevino dobijo status »Čaka«. Že odpremljeni arhivirani nalogi ostanejo zaključeni (stara enotna odprema se razume kot odprema obeh delov). Pred nadgradnjo naredi varnostno kopijo podatkov. Uporabi `git pull --ff-only` in `docker compose up -d --build`.
