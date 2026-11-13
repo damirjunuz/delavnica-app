@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je trinajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je štirinajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -131,3 +131,9 @@ V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so za
 Na zaslonih do 900 px širine se projekti prikažejo kot kartice z nazivom, rokom, odgovorno osebo, stanjem in napredkom. Klik na projekt odpre pregled čez cel zaslon: izdelava, skladišče, barvana/surova pločevina, ločene odpreme in opombe. Na širšem računalniškem zaslonu ostane tabela.
 
 Statusi v odprtem projektu se shranijo takoj. Skladiščnik lahko sidra in drobni material označi kot pripravljena z enim klikom. Gumb »Opombe, material in urejanje« odpre obrazec za besedila; tam spremembe potrdiš z »Shrani nalog«. Za vrnitev na seznam uporabi »← Projekti«. Filtri in iskanje veljajo tudi za kartice. Odprti projekt se ob osvežitvi posodobi brez prepisovanja neshranjenega obrazca za urejanje.
+
+## Izdelava pločevine in oddani papirji
+
+Barvana in surova pločevina imata novo stanje **V izdelavi**. Vsaka vrsta ima svoj datum **Oddani papirji**, ki se pokaže ob njenem statusu v tabeli in v mobilnem projektu. Klikni datum oziroma **＋ Vpiši datum**, izberi dejanski dan predaje dokumentacije ter potrdi **Shrani datum**. Datum je mogoče vpisati tudi v obrazcu za urejanje naloga.
+
+Datum se ne ugiba iz dneva spremembe statusa; vpiše ga uporabnik in ostane shranjen tudi ob nadaljnjem barvanju ali odpremi. Za stare naloge ostane prazen, dokler ga uporabnik ne vpiše. Vsaka sprememba datuma se zabeleži v zgodovini. Vnos za barvano in surovo pločevino je ločen.
