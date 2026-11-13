@@ -65,7 +65,7 @@ class WorkshopTests(unittest.TestCase):
         return cookie.split(';')[0]
 
     def create(self, cookie, **extra):
-        status, data, _ = self.request('POST', '/api/jobs', {'code': 'SDe TEST', 'title': 'Preizkusni objekt', **extra}, cookie)
+        status, data, _ = self.request('POST', '/api/jobs', {'code': 'SDe TEST', 'title': 'Preizkusni objekt', 'anchors_status': 'na', 'small_material_status': 'na', **extra}, cookie)
         self.assertEqual(status, 201, data)
         return data
 
@@ -227,7 +227,7 @@ class WorkshopTests(unittest.TestCase):
 
     def test_warehouse_preparation_and_changed_lists(self):
         leader, worker = self.login('Test Vodja'), self.login('Test Skladiščnik')
-        j = self.create(leader, anchors='Sidra SDe 12 – 12 kos', small_material='Vijaki – 40 kos')
+        j = self.create(leader, anchors='Sidra SDe 12 – 12 kos', small_material='Vijaki – 40 kos', anchors_status='waiting', small_material_status='waiting')
         self.assertEqual(j['anchors_status'], 'waiting')
         self.assertEqual(j['small_material_status'], 'waiting')
         status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
@@ -273,6 +273,52 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(blank['subcaps_status'], 'waiting')
         self.assertEqual(self.request('PATCH', '/api/jobs/' + blank['id'], {
             'version': blank['version'], 'caps': ['bad']}, c)[0], 400)
+
+    def test_facade_does_not_dispatch_supplies_or_caps(self):
+        c = self.login()
+        j = self.create(c, anchors='Sidra – 12 kos', anchors_status='done',
+                        small_material='Vijaki – 40 kos', small_material_status='done',
+                        caps='Kape – 20 kos', caps_status='done',
+                        subcaps='Podkape – 20 kos', subcaps_status='done', sheet='done')
+        shipping = ['anchors_dispatch', 'small_material_dispatch', 'caps_dispatch', 'subcaps_dispatch', 'sheet_dispatch']
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertTrue(all(j[key] == 'waiting' for key in shipping))
+        self.assertEqual(j['anchors_status'], 'done')
+        self.assertEqual(j['caps'], 'Kape – 20 kos')
+        for index, field in enumerate(shipping):
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], field: 'done'}, c)
+            self.assertEqual(status, 200)
+            self.assertEqual(j['archived'], index == len(shipping) - 1)
+            self.assertEqual(j['dispatch'], 'done')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'caps': 'Kape – 22 kos'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['caps_status'], 'waiting')
+        self.assertEqual(j['caps_dispatch'], 'waiting')
+        self.assertEqual(j['dispatch'], 'done')
+
+    def test_upgrade_reopens_previously_archived_pending_supplies(self):
+        c = self.login()
+        j = self.create(c, anchors='Sidra – 12 kos', anchors_status='done', caps='Kape – 20 kos', caps_status='done')
+        with sqlite3.connect(Path(self.temp.name) / 'delavnica.sqlite3') as db:
+            payload = json.loads(db.execute('SELECT payload FROM jobs WHERE id=?', (j['id'],)).fetchone()[0])
+            payload.update(dispatch='done', archived=True)
+            for key in ('anchors_dispatch', 'small_material_dispatch', 'caps_dispatch', 'subcaps_dispatch'):
+                del payload[key]
+            db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
+        self.process.terminate()
+        self.process.communicate(timeout=10)
+        self.start()
+        current = next(x for x in self.request('GET', '/api/jobs', cookie=c)[1]['jobs'] if x['id'] == j['id'])
+        self.assertFalse(current['archived'])
+        self.assertEqual(current['dispatch'], 'done')
+        self.assertEqual(current['anchors_status'], 'done')
+        self.assertEqual(current['anchors_dispatch'], 'waiting')
+        self.assertEqual(current['caps_dispatch'], 'waiting')
+        events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=c)[1]['events']
+        self.assertTrue(any(e['actor'] == 'Sistem – ločene odpreme' and e['field'] == 'archived' for e in events))
 
     def test_upgrade_preserves_legacy_orders(self):
         c = self.login()
