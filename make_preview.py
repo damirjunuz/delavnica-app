@@ -13,7 +13,7 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
@@ -26,7 +26,7 @@ seeds = [
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v3';
+const demoKey='delavnica-predogled-v4';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
