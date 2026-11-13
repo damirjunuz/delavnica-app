@@ -3,3 +3,5 @@
 .awaiting_paint{background:#fcf1d9;color:#987429}.shipment-summary{display:block;font-size:10px;color:#856522;background:#fff3d7;border-radius:5px;padding:6px;margin-top:7px;line-height:1.5;max-width:220px}table{min-width:1510px}
 
 .sheet-stack{display:grid;gap:9px;min-width:112px}.sheet-type{display:block;font-size:9px;color:#7c887a;margin-bottom:4px}.sheet-stack .status{font-size:10px}.sheet-stack>div{min-width:0}
+
+.manual-note{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:220px;font-size:10px;line-height:1.5;color:#6d796a;margin-top:7px;white-space:pre-line;overflow-wrap:anywhere}.manual-note strong{font-weight:650;color:#40543b}
