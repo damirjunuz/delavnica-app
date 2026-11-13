@@ -21,8 +21,10 @@ Odpri **predogled.html** z dvoklikom. To je samostojen interaktivni predogled z 
 
 Potrebuješ obstoječa Docker in Caddy. Aplikacija uporablja svojo SQLite zbirko v trajnem Docker volume-u. Ne spreminja podatkov drugih aplikacij.
 
-1. ZIP razširi tako, da je datoteka `compose.yml` v `/opt/delavnica-app`.
-2. Na strežniku preveri, da je port 3110 prost (`ss -ltn | rg ':3110'`; če rg manjka, uporabi grep) in da omrežje `n8n_n8n-network` obstaja (`docker network ls`). Če ima Caddy drugo omrežje, popravi `.env`.
+1. Prenesi kodo z `git clone https://github.com/damirjunuz/delavnica-app.git /opt/delavnica-app` ali razširi ZIP v isto mapo.
+2. Na strežniku preveri, da je port 3111 prost (`ss -ltn | rg ':3111'`; če rg manjka, uporabi grep) in da omrežje `n8n_n8n-network` obstaja (`docker network ls`). Če ima Caddy drugo omrežje, popravi `.env`.
+Privzeti lokalni port je **3111**; z `APP_PORT` v `.env` ga lahko spremeniš. Vrata 3110 na obstoječem strežniku uporablja solarna aplikacija. Caddy se poveže neposredno na notranji port 3100 v Docker omrežju.
+
 3. Pripravi nastavitve:
 
 ```bash
@@ -39,7 +41,7 @@ Nastavi `APP_PASSWORD` z najmanj 12 znaki. `APP_ORIGIN` mora biti natančen zuna
 ```bash
 docker compose up -d --build
 docker compose ps
-curl http://127.0.0.1:3110/health
+curl http://127.0.0.1:3111/health
 ```
 
 5. Pri ponudniku DNS usmeri izbrano poddomeno na IP strežnika. V obstoječi `/opt/n8n/Caddyfile` **dodaj** ta blok in ohrani vse ostale:
@@ -86,10 +88,10 @@ Brez dodatnih Python knjižnic; Python 3.12 ali novejši:
 
 ```bash
 python3 -m unittest discover -s tests -v
-APP_PASSWORD='lokalno-testno-geslo' APP_ORIGIN=http://localhost:3110 DATA_DIR=./data PORT=3110 python3 server.py
+APP_PASSWORD='lokalno-testno-geslo' APP_ORIGIN=http://localhost:3111 DATA_DIR=./data PORT=3111 python3 server.py
 ```
 
-Nato odpri `http://localhost:3110` (ne IP naslova, ker se mora izvor ujemati). Lokalni podatki se shranijo v `data`. Strežnik uporablja standardni Python HTTP strežnik za manjšo interno delavnico, za Caddyjem; ni namenjen velikim javnim obremenitvam.
+Nato odpri `http://localhost:3111` (ne IP naslova, ker se mora izvor ujemati). Lokalni podatki se shranijo v `data`. Strežnik uporablja standardni Python HTTP strežnik za manjšo interno delavnico, za Caddyjem; ni namenjen velikim javnim obremenitvam.
 
 Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog ali različnih uporabniških pravic. Namenjena je hitremu skupnemu označevanju poteka dela.
 
