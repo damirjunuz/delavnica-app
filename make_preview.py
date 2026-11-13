@@ -13,7 +13,7 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
@@ -26,7 +26,7 @@ seeds = [
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v4';
+const demoKey='delavnica-predogled-v5';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
@@ -51,6 +51,7 @@ async function api(path,method='GET',body){
  if(method==='PATCH'&&j){
   if(body.version!==j.version){const e=new Error('Nalog je medtem spremenjen. Odpri ga znova.');e.status=409;throw e;}
   const patch={...body};delete patch.version;
+  for(const [text,status] of [['anchors','anchors_status'],['small_material','small_material_status']])if(text in patch&&patch[text]!==j[text]&&j[status]==='done'&&!(status in patch))patch[status]='waiting';
   const next={...j,...patch};
   for(const [stage,shipping] of sheetPairs){if(next[stage]==='na'&&next[shipping]!=='na')patch[shipping]='na';else if(next[stage]!=='na'&&next[shipping]==='na')patch[shipping]='waiting';}
   if(patch.archived===false&&j.archived&&allShipped(j))patch.dispatch='waiting';
