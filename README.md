@@ -13,7 +13,7 @@ Odpri **predogled.html** z dvoklikom. To je samostojen interaktivni predogled z 
 - Klik na oznako naloga odpre rok, odgovorno osebo, opombe, faze in zadnjih 300 sprememb. Spremembe v tem obrazcu potrdiš z »Shrani nalog«. Statusi v glavni tabeli se shranijo takoj po izbiri.
 - Material: za naročiti / naročeno / pripravljeno / zastoj. Pločevina: ni potrebna / za naročiti / naročeno / čaka barvanje / na barvanju / pripravljena / zastoj.
 - Fasado in pločevino odpremiš ločeno. »Fasada odšla« ne zaključi naloga, kadar pločevina še ni odpremljena. Status pločevine vključuje tudi »Čaka barvanje«. Filter »Delno odpremljeno« in oznaka pod nalogom pokažeta, kaj je že odšlo in kaj še čaka. »Za odpremo« pokaže naloge, kjer je vsaj en neodpremljen del pripravljen.
-- Nalog se samodejno arhivira šele, ko sta odpremljeni fasada in vsa potrebna pločevina. Če pločevina ni potrebna, zadostuje odprema fasade. Ni brisanja nalogov; iz arhiva jih lahko vrneš med aktivne. Ob vrnitvi zaključenega naloga se odprema fasade ponastavi na »Čaka«. Ob ponovnem odprtju odpreme katerega od delov se nalog vrne med aktivne.
+- Nalog se samodejno arhivira šele, ko so odpremljeni fasada in vsi drugi potrebni deli: sidra, drobni material, kape, podkape ter obe vrsti pločevine. Ni brisanja nalogov; iz arhiva jih lahko vrneš med aktivne. Ob vrnitvi zaključenega naloga se odprema fasade ponastavi na »Čaka«. Ob ponovnem odprtju odpreme katerega od delov se nalog vrne med aktivne.
 - Aktivni nalogi so urejeni po roku; zamujeni imajo opozorilo. Filtri: vsi aktivni, v delu, zastoji, za odpremo, arhiv. Iskanje pregleduje oznako, objekt, odgovorno osebo in opombe.
 - Skupni pregled se osveži na 10 sekund, tudi ob vrnitvi v zavihek. Sočasne spremembe istega naloga se zaznajo: druga sprememba dobi opozorilo, da ponovno odpre nalog. Aplikacija ne prepiše tiho tujih sprememb. Ob izpadu povezave ne potrdi uspešnega shranjevanja.
 
@@ -97,11 +97,11 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je petnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je sedemnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
-Ob zagonu se obstoječim nalogom samodejno doda odprema pločevine. Aktivni nalogi s potrebno pločevino dobijo status »Čaka«. Že odpremljeni arhivirani nalogi ostanejo zaključeni (stara enotna odprema se razume kot odprema obeh delov). Pred nadgradnjo naredi varnostno kopijo podatkov. Uporabi `git pull --ff-only` in `docker compose up -d --build`.
+Ob zagonu se obstoječim nalogom samodejno doda odprema pločevine. Aktivni nalogi s potrebno pločevino dobijo status »Čaka«. Stara enotna odprema pločevine se ohrani. Nalog z dodatnimi potrebnimi skupinami brez samostojno potrjene odpreme se vrne med aktivne. Pred nadgradnjo naredi varnostno kopijo podatkov. Uporabi `git pull --ff-only` in `docker compose up -d --build`.
 
 ## Barvana in surova pločevina na istem nalogu
 
@@ -110,9 +110,9 @@ V pregledu sta pri pločevini in njeni odpremi dve vrstici: **Barvana** in **Sur
 - Barvana: ni potrebna / za naročiti / naročeno / čaka barvanje / na barvanju / pripravljena / zastoj.
 - Surova: ni potrebna / za naročiti / naročeno / v pripravi / pripravljena / zastoj. Barvanja pri njej ni.
 - Primer: fasada in surova pločevina sta že odšli, barvana pa še čaka barvanje. Nalog ostane med aktivnimi in delno odpremljenimi.
-- Arhiviranje zahteva odpremo fasade in obeh vrst pločevine, ki sta označeni kot potrebni.
+- Arhiviranje zahteva odpremo fasade in vseh skupin, ki so označene kot potrebne.
 
-Ob nadgradnji ostanejo dosedanji statusi pločevine pod »Barvana«. Nova surova pločevina je privzeto »Ni potrebno«; obstoječih podatkov ne razvrščamo samodejno po vrsti. Če se dosedanji status nanaša na surovo pločevino, ga uporabnik prenese na surovo vrstico in barvano po potrebi označi kot nepotrebno. Že arhivirani nalogi ostanejo arhivirani.
+Ob nadgradnji ostanejo dosedanji statusi pločevine pod »Barvana«. Nova surova pločevina je privzeto »Ni potrebno«; obstoječih podatkov ne razvrščamo samodejno po vrsti. Če se dosedanji status nanaša na surovo pločevino, ga uporabnik prenese na surovo vrstico in barvano po potrebi označi kot nepotrebno. Arhivirani nalogi brez vseh potrjenih odprem potrebnih skupin se ob nadgradnji vrnejo med aktivne.
 
 ## Ročne opombe in drobni material
 
@@ -124,7 +124,7 @@ Kratka vsebina obeh polj je vidna pod oznako naloga v glavni tabeli, celoten zap
 
 V podrobnostih naloga je ločen ročni seznam **Sidra** (tip, oznaka, količina), poleg seznama **Drobni material**. Oba seznama sta v glavnem pregledu v svojih stolpcih. Skladiščnik se prijavi s svojim imenom in klikne **Čaka pripravo**; status se takoj spremeni v zeleno **✓ Pripravljeno**. Dodatno shranjevanje ali odpiranje naloga za ta klik ni potrebno. Ponoven klik vrne stanje na »Čaka pripravo«.
 
-V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so zapisane v zgodovini z imenom in časom. Če se že potrjeni seznam sider ali drobnega materiala spremeni, se njegova priprava samodejno vrne na »Čaka pripravo«, razen če uporabnik v istem shranjevanju izrecno spremeni tudi status. Pripravljenost fasade za odpremo upošteva pripravo obeh skupin. Pri nadgradnji stari aktivni nalogi dobijo »Čaka pripravo«, stari arhivirani pa »Ni potrebno«, da se zaključeni nalogi ohranijo.
+V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so zapisane v zgodovini z imenom in časom. Če se že potrjeni seznam sider ali drobnega materiala spremeni, se njegova priprava samodejno vrne na »Čaka pripravo«, razen če uporabnik v istem shranjevanju izrecno spremeni tudi status. Sidra in drobni material imata ločeno pripravo ter odpremo, neodvisno od fasade. Pri nadgradnji stari aktivni nalogi dobijo »Čaka pripravo«, stari arhivirani pa »Ni potrebno«, da se zaključeni nalogi ohranijo.
 
 ## Pregled na telefonu
 
@@ -142,4 +142,10 @@ Datum se ne ugiba iz dneva spremembe statusa; vpiše ga uporabnik in ostane shra
 
 Nova samostojna rubrika vsebuje ločena seznama **Kape** in **Podkape**. Vpišeš tip, mere, barvo in količino v podrobnostih naloga. Vsak seznam ima svojo pripravo: **Ni potrebno / Čaka pripravo / ✓ Pripravljeno**. V glavnem pregledu in mobilnem projektu se priprava potrdi z enim klikom; ponoven klik vrne čakanje.
 
-Prazni novi in obstoječi nalogi imajo obe skupini označeni kot nepotrebni. Ko vpišeš seznam, se njegova skupina aktivira kot »Čaka pripravo«. Sprememba že potrjenega seznama zahteva ponovno pripravo. Statusa sta del pregleda pripravljenosti fasade za odpremo, spremembe pa so v zgodovini. Na telefonu je rubrika »Kape in podkape« v odprtem projektu, na računalniku v svojem stolpcu.
+Prazni novi in obstoječi nalogi imajo obe skupini označeni kot nepotrebni. Ko vpišeš seznam, se njegova skupina aktivira kot »Čaka pripravo«. Sprememba že potrjenega seznama zahteva ponovno pripravo. Kape in podkape imata ločeno odpremo, spremembe pa so v zgodovini. Na telefonu je rubrika »Kape in podkape« v odprtem projektu, na računalniku v svojem stolpcu.
+
+## Ločena odprema vseh delov
+
+**Odprema fasade velja samo za fasado.** Sidra, drobni material, kape, podkape ter barvana in surova pločevina imajo vsak svoj status odpreme. »Pripravljeno« pomeni pripravljeno za prevzem; odpremo potrdiš posebej. Nalog ostane aktiven in delno odpremljen, dokler niso odpremljeni vsi potrebni deli. Skupina z oznako »Ni potrebno« se preskoči. Pripravljenost fasade upošteva samo njene proizvodne faze, ne čaka na druge skupine.
+
+Ob nadgradnji nove odpreme potrebnih skupin dobijo stanje »Čaka odpremo«. Tudi že arhivirani nalog se vrne med aktivne, če ima te potrebne skupine brez potrjene samostojne odpreme; odprema fasade ostane potrjena in vsi obstoječi seznami ter statusi priprave se ohranijo. Ponovno odprtje se zabeleži v zgodovini. Nato potrdi dejanske odpreme ali nepotrebne skupine označi z »Ni potrebno«.
