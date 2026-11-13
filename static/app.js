@@ -1,7 +1,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const fields = ['documentation','material','cutting','machining','assembly','packing','sheet','dispatch','sheet_dispatch','raw_sheet','raw_sheet_dispatch'];
-const labels = {documentation:'Dokumentacija',material:'Material',cutting:'Razrez',machining:'Obdelava',assembly:'Sestavljanje',packing:'Pakiranje',sheet:'Barvana pločevina',raw_sheet:'Surova pločevina',dispatch:'Odprema fasade',sheet_dispatch:'Odprema barvane pločevine',raw_sheet_dispatch:'Odprema surove pločevine',code:'Nalog',title:'Objekt',due:'Rok',owner:'Odgovorna oseba',notes:'Opombe',archived:'Arhiv',created:'Nalog ustvarjen'};
+const labels = {documentation:'Dokumentacija',material:'Material',cutting:'Razrez',machining:'Obdelava',assembly:'Sestavljanje',packing:'Pakiranje',sheet:'Barvana pločevina',raw_sheet:'Surova pločevina',dispatch:'Odprema fasade',sheet_dispatch:'Odprema barvane pločevine',raw_sheet_dispatch:'Odprema surove pločevine',code:'Nalog',title:'Objekt',due:'Rok',owner:'Odgovorna oseba',notes:'Opombe',small_material:'Drobni material',archived:'Arhiv',created:'Nalog ustvarjen'};
 const baseStatus = {waiting:'Čaka',active:'V delu',done:'Končano',blocked:'Zastoj',ordered:'Naročeno',painting:'Na barvanju',awaiting_paint:'Čaka barvanje',na:'Ni potrebno'};
 const special = {documentation:{waiting:'Čaka',active:'V pregledu',done:'Sprejeta'},material:{waiting:'Za naročiti',done:'Pripravljeno'},sheet:{waiting:'Za naročiti',done:'Pripravljena'},dispatch:{waiting:'Čaka',done:'Fasada odšla'},sheet_dispatch:{waiting:'Čaka',done:'Odpremljena'},raw_sheet:{waiting:'Za naročiti',active:'V pripravi',done:'Pripravljena'},raw_sheet_dispatch:{waiting:'Čaka',done:'Odpremljena'}};
 const options = Object.fromEntries(fields.map(k => [k,k==='material'?['waiting','ordered','done','blocked']:k==='sheet'?['na','waiting','ordered','awaiting_paint','painting','done','blocked']:k==='raw_sheet'?['na','waiting','ordered','active','done','blocked']:['sheet_dispatch','raw_sheet_dispatch'].includes(k)?['waiting','done','blocked','na']:k==='dispatch'?['waiting','done','blocked']:['waiting','active','done','blocked',...(k==='documentation'?[]:['na'])]]));
@@ -47,11 +47,11 @@ function render(){
  const metrics=[['Aktivni nalogi',active.length,'▤','all',''],['V delu',active.filter(working).length,'◷','work','warn'],['Zastoji',active.filter(blocked).length,'!','blocked','danger'],['Pripravljeno za odpremo',active.filter(ready).length,'✓','ready','good']];
  $('#metrics').innerHTML=metrics.map(([name,n,icon,f,c])=>`<button class="metric ${c}" data-filter="${f}"><div><div class="metric-label">${name}</div><div class="metric-number">${n.toString().padStart(2,'0')}</div></div><span class="metric-symbol" aria-hidden="true">${icon}</span></button>`).join('');
  $('#filters').innerHTML=filters.map(([key,label])=>`<button data-filter="${key}" class="${key===filter?'selected':''}" aria-pressed="${key===filter}">${label}${key==='archive'?' ('+jobs.filter(j=>j.archived).length+')':''}</button>`).join('');
- const visible=jobs.filter(j=>(filter==='archive'?j.archived:!j.archived)&&(filter!=='work'||working(j))&&(filter!=='blocked'||blocked(j))&&(filter!=='ready'||ready(j))&&(filter!=='partial'||partial(j))&&[j.code,j.title,j.owner,j.notes].join(' ').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl'))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created.localeCompare(a.created));
+ const visible=jobs.filter(j=>(filter==='archive'?j.archived:!j.archived)&&(filter!=='work'||working(j))&&(filter!=='blocked'||blocked(j))&&(filter!=='ready'||ready(j))&&(filter!=='partial'||partial(j))&&[j.code,j.title,j.owner,j.notes,j.small_material].join(' ').toLocaleLowerCase('sl').includes(search.toLocaleLowerCase('sl'))).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created.localeCompare(a.created));
  $('#resultCount').textContent=`${visible.length} ${visible.length===1?'nalog':'nalogov'} · ${filter==='archive'?'arhiv':'razvrščeno po roku'}`;
  $('#rows').innerHTML=visible.map(j=>{
   const late=j.due&&j.due<day()&&!j.archived;
-  return `<tr class="${late?'late':''}"><td><button class="job-link" data-edit="${j.id}"><span class="job-code">${esc(j.code)}</span><span class="job-title" title="${esc(j.title)}">${esc(j.title)}</span><span class="job-owner">${esc(j.owner||'Odgovorna oseba še ni določena')}</span>${partial(j)?'<span class="shipment-summary">'+esc(shipmentSummary(j))+'</span>':''}</button></td><td class="due ${late?'overdue':''}">${esc(date(j.due))}${late?'<small>Rok je potekel</small>':''}</td>${['documentation','material','cutting','machining','assembly','packing'].map(k=>`<td>${statusButton(j,k)}</td>`).join('')}<td>${sheetCell(j)}</td><td>${statusButton(j,'dispatch')}</td><td>${sheetCell(j,true)}</td><td><button class="dots" data-edit="${j.id}" aria-label="Podrobnosti naloga ${esc(j.code)}">⋯</button></td></tr>`;
+  return `<tr class="${late?'late':''}"><td><button class="job-link" data-edit="${j.id}"><span class="job-code">${esc(j.code)}</span><span class="job-title" title="${esc(j.title)}">${esc(j.title)}</span><span class="job-owner">${esc(j.owner||'Odgovorna oseba še ni določena')}</span>${partial(j)?'<span class="shipment-summary">'+esc(shipmentSummary(j))+'</span>':''}${j.notes?'<span class="manual-note" title="'+esc(j.notes)+'"><strong>Opomba:</strong> '+esc(j.notes)+'</span>':''}${j.small_material?'<span class="manual-note" title="'+esc(j.small_material)+'"><strong>Drobni material:</strong> '+esc(j.small_material)+'</span>':''}</button></td><td class="due ${late?'overdue':''}">${esc(date(j.due))}${late?'<small>Rok je potekel</small>':''}</td>${['documentation','material','cutting','machining','assembly','packing'].map(k=>`<td>${statusButton(j,k)}</td>`).join('')}<td>${sheetCell(j)}</td><td>${statusButton(j,'dispatch')}</td><td>${sheetCell(j,true)}</td><td><button class="dots" data-edit="${j.id}" aria-label="Podrobnosti naloga ${esc(j.code)}">⋯</button></td></tr>`;
  }).join('');
  $('#empty').hidden=visible.length>0;
  $('#emptyTitle').textContent=jobs.length===0?'Prvi nalog, jasen začetek.':'V tem pogledu ni nalogov.';
@@ -64,9 +64,9 @@ function renderDraftStages(){
 async function openJob(id=null){
  editing=id?structuredClone(jobs.find(j=>j.id===id)):null;
  if(id&&!editing)return;
- draft=editing?structuredClone(editing):{id:'new',...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',sheet_dispatch:'na',raw_sheet:'na',raw_sheet_dispatch:'na',code:'',title:'',due:'',owner:actor,notes:'',archived:false};
+ draft=editing?structuredClone(editing):{id:'new',...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',sheet_dispatch:'na',raw_sheet:'na',raw_sheet_dispatch:'na',code:'',title:'',due:'',owner:actor,notes:'',small_material:'',archived:false};
  $('#jobForm').reset();
- for(const k of ['code','title','due','owner','notes'])$('#jobForm').elements[k].value=draft[k]||'';
+ for(const k of ['code','title','due','owner','notes','small_material'])$('#jobForm').elements[k].value=draft[k]||'';
  $('#dialogTitle').textContent=editing?editing.code:'Nov nalog';$('#formError').textContent='';
  $('#historySection').hidden=!editing;
  $('#archiveArea').innerHTML=editing?.archived?'<button type="button" class="secondary" id="archiveJob">↶ Vrni med aktivne naloge</button><p class="hint">Ob vrnitvi zaključenega naloga se odprema fasade ponastavi na »Čaka«.</p>':'<p class="hint">Nalog gre samodejno v arhiv šele po odpremi fasade in vse potrebne pločevine.</p>';
@@ -122,7 +122,7 @@ document.addEventListener('click',e=>{
 });
 $('#jobForm').addEventListener('submit',async e=>{
  e.preventDefault();$('#saveJob').disabled=true;$('#formError').textContent='';
- const data={};for(const k of ['code','title','due','owner','notes'])data[k]=e.currentTarget.elements[k].value.trim();
+ const data={};for(const k of ['code','title','due','owner','notes','small_material'])data[k]=e.currentTarget.elements[k].value.trim();
  for(const k of fields)if(!editing||draft[k]!==editing[k])data[k]=draft[k];
  if(editing)data.version=editing.version;
  try{await api(editing?'/api/jobs/'+editing.id:'/api/jobs',editing?'PATCH':'POST',data);$('#jobDialog').close();toast(editing?'Nalog je shranjen.':'Nov nalog je dodan.');await load();}
