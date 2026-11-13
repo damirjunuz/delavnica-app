@@ -15,18 +15,18 @@ def sample(i, code, title, offset, **statuses):
                 archived=False,
                 **{**dict(notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
-                          sheet='na', dispatch='waiting'), **statuses})
+                          sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
 
 seeds = [
-    sample(1, 'SDe 11', 'Fasada · severni del', 2, cutting='done', machining='active', sheet='painting'),
+    sample(1, 'SDe 11', 'Fasada · severni del', 2, cutting='done', machining='active', sheet='awaiting_paint', dispatch='done'),
     sample(2, 'SDe 12', 'Aluminijasta vrata · pritličje', 4, material='blocked', notes='Primer zastoja: manjkajo profili za vrata.'),
     sample(3, 'SDe 15', 'Okna · 1. nadstropje', 1, cutting='done', machining='done', assembly='done', packing='done', sheet='done'),
     sample(4, 'SDe 16', 'Vhodna stena · objekt B', 6, material='ordered', documentation='active', sheet='ordered'),
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v1';
+const demoKey='delavnica-predogled-v2';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
@@ -43,15 +43,19 @@ async function api(path,method='GET',body){
  if(path==='/api/jobs'&&method==='POST'){
   const id=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
   const j={id,version:1,created:stamp,updated:stamp,...Object.fromEntries(fields.map(k=>[k,'waiting'])),sheet:'na',archived:false,...body};
-  if(j.dispatch==='done')j.archived=true;
+  if(j.sheet==='na')j.sheet_dispatch='na';else if(j.sheet_dispatch==='na')j.sheet_dispatch='waiting';
+  j.archived=j.dispatch==='done'&&(j.sheet==='na'||j.sheet_dispatch==='done');
   demoState.jobs.unshift(j);log(j,'created','',j.code);saveDemo();return structuredClone(j);
  }
  const id=path.split('/')[3],j=demoState.jobs.find(j=>j.id===id);
  if(method==='PATCH'&&j){
   if(body.version!==j.version){const e=new Error('Nalog je medtem spremenjen. Odpri ga znova.');e.status=409;throw e;}
   const patch={...body};delete patch.version;
-  if(patch.dispatch==='done')patch.archived=true;
-  else if(j.dispatch==='done'&&(patch.archived===false||('dispatch' in patch&&patch.dispatch!=='done'))){patch.archived=false;if(!('dispatch' in patch))patch.dispatch='waiting';}
+  const next={...j,...patch};
+  if(next.sheet==='na'&&next.sheet_dispatch!=='na')patch.sheet_dispatch='na';
+  else if(next.sheet!=='na'&&next.sheet_dispatch==='na')patch.sheet_dispatch='waiting';
+  if(patch.archived===false&&j.archived&&j.dispatch==='done'&&(j.sheet==='na'||j.sheet_dispatch==='done'))patch.dispatch='waiting';
+  if(['dispatch','sheet_dispatch','sheet'].some(k=>k in patch)){const n={...j,...patch};patch.archived=n.dispatch==='done'&&(n.sheet==='na'||n.sheet_dispatch==='done');}
   for(const [k,v]of Object.entries(patch))if(j[k]!==v){log(j,k,j[k],v);j[k]=v;}
   j.version++;j.updated=stamp;saveDemo();return structuredClone(j);
  }
