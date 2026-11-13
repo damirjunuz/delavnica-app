@@ -25,10 +25,10 @@ FIELDS = {
     'machining': ['waiting', 'active', 'done', 'blocked', 'na'],
     'assembly': ['waiting', 'active', 'done', 'blocked', 'na'],
     'packing': ['waiting', 'active', 'done', 'blocked', 'na'],
-    'sheet': ['waiting', 'ordered', 'awaiting_paint', 'painting', 'done', 'blocked', 'na'],
+    'sheet': ['waiting', 'ordered', 'manufacturing', 'awaiting_paint', 'painting', 'done', 'blocked', 'na'],
     'dispatch': ['waiting', 'done', 'blocked'],
     'sheet_dispatch': ['waiting', 'done', 'blocked', 'na'],
-    'raw_sheet': ['waiting', 'ordered', 'active', 'done', 'blocked', 'na'],
+    'raw_sheet': ['waiting', 'ordered', 'active', 'manufacturing', 'done', 'blocked', 'na'],
     'raw_sheet_dispatch': ['waiting', 'done', 'blocked', 'na'],
     'anchors_status': ['waiting', 'done', 'na'],
     'small_material_status': ['waiting', 'done', 'na'],
@@ -39,9 +39,10 @@ LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': '
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
           'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'anchors': 'Sidra',
           'anchors_status': 'Priprava sider', 'small_material_status': 'Priprava drobnega materiala',
-          'small_material': 'Drobni material', 'archived': 'Arhiv'}
+          'small_material': 'Drobni material', 'sheet_papers_date': 'Oddani papirji – barvana pločevina',
+          'raw_sheet_papers_date': 'Oddani papirji – surova pločevina', 'archived': 'Arhiv'}
 STATUS = {'waiting': 'Čaka', 'active': 'V delu', 'done': 'Končano', 'blocked': 'Zastoj',
-          'ordered': 'Naročeno', 'awaiting_paint': 'Čaka barvanje', 'painting': 'Na barvanju', 'na': 'Ni potrebno'}
+          'ordered': 'Naročeno', 'manufacturing': 'V izdelavi', 'awaiting_paint': 'Čaka barvanje', 'painting': 'Na barvanju', 'na': 'Ni potrebno'}
 
 
 def now():
@@ -92,7 +93,7 @@ def init():
             if 'small_material' not in values:
                 values['small_material'] = ''
                 changed = True
-            for field, default in (('anchors', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
+            for field, default in (('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
                                    ('small_material_status', 'na' if values['archived'] else 'waiting')):
                 if field not in values:
                     values[field] = default
@@ -139,7 +140,7 @@ class Problem(Exception):
 def validate(data, create=False):
     if not isinstance(data, dict):
         raise Problem(400, 'Neveljavni podatki.')
-    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'archived'}
+    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
     if set(data) - allowed:
         raise Problem(400, 'Neznano polje.')
     for key, value in data.items():
@@ -157,13 +158,14 @@ def validate(data, create=False):
     for key in ('code', 'title'):
         if (create or key in data) and not data.get(key):
             raise Problem(400, 'Vpiši oznako naloga in objekt.')
-    if data.get('due'):
-        try:
-            if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', data['due']):
-                raise ValueError()
-            dt.date.fromisoformat(data['due'])
-        except ValueError:
-            raise Problem(400, 'Neveljaven datum.')
+    for field in ('due', 'sheet_papers_date', 'raw_sheet_papers_date'):
+        if data.get(field):
+            try:
+                if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', data[field]):
+                    raise ValueError()
+                dt.date.fromisoformat(data[field])
+            except ValueError:
+                raise Problem(400, 'Neveljaven datum.')
     return data
 
 
@@ -286,7 +288,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {'ok': True}, cookie='session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + ('; Secure' if SECURE else ''))
             if path == '/api/jobs' and self.command == 'POST':
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'anchors': '', 'small_material': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
+                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
                 values.update(validate(data, create=True))
                 values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'raw_sheet', 'raw_sheet_dispatch', 'dispatch')}))
                 uid, stamp = secrets.token_hex(12), now()
