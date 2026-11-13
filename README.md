@@ -159,3 +159,7 @@ Projekt privzeto pokaže preostalo delo. Končane proizvodne faze se umaknejo v 
 ## Kartice projektov tudi na računalniku
 
 Široko tabelo nadomesti mreža kartic: na običajnem računalniku dve ali tri v vrsti, na zelo širokem zaslonu štiri, na telefonu ena. Vsaka kartica pokaže oznako, objekt, rok, odgovorno osebo, stanje in napredek. Klik odpre širši pregled projekta z odprtimi nalogami v dveh stolpcih; zaključeno delo ostane zloženo spodaj. Iskalnik, filtri in takojšnje shranjevanje statusov delujejo enako kot prej. Na telefonu ostane pregled čez cel zaslon.
+
+## Oznaki na karticah
+
+Aktivno delo je označeno kot **V izdelavi**, pripravljena neodpremljena faza oziroma skupina pa kot **Čaka odpremo**. Enaki oznaki sta na filtrih in števcih. Odpremljeni projekt z drugimi odprtimi deli še vedno kaže **Delno odpremljeno**; vse njegove odpreme ostanejo ločene.
