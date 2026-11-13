@@ -149,3 +149,9 @@ Prazni novi in obstoječi nalogi imajo obe skupini označeni kot nepotrebni. Ko 
 **Odprema fasade velja samo za fasado.** Sidra, drobni material, kape, podkape ter barvana in surova pločevina imajo vsak svoj status odpreme. »Pripravljeno« pomeni pripravljeno za prevzem; odpremo potrdiš posebej. Nalog ostane aktiven in delno odpremljen, dokler niso odpremljeni vsi potrebni deli. Skupina z oznako »Ni potrebno« se preskoči. Pripravljenost fasade upošteva samo njene proizvodne faze, ne čaka na druge skupine.
 
 Ob nadgradnji nove odpreme potrebnih skupin dobijo stanje »Čaka odpremo«. Tudi že arhivirani nalog se vrne med aktivne, če ima te potrebne skupine brez potrjene samostojne odpreme; odprema fasade ostane potrjena in vsi obstoječi seznami ter statusi priprave se ohranijo. Ponovno odprtje se zabeleži v zgodovini. Nato potrdi dejanske odpreme ali nepotrebne skupine označi z »Ni potrebno«.
+
+## Pregled samo odprtega dela
+
+Projekt privzeto pokaže preostalo delo. Končane proizvodne faze se umaknejo v zložljiv razdelek **Zaključeno / ni potrebno**. Ko je fasada odpremljena, se celotna izdelava fasade in njena odprema umakneta tja; sidra, kape in druge še odprte skupine ostanejo vidne. Skupine, ki niso potrebne, so prav tako v zloženem razdelku.
+
+**Pripravljeno** še vedno čaka na ločeno odpremo: pripravljeni del ostane v odprtem delu s svojim gumbom za odpremo, potrjena priprava pa se umakne med zaključene faze. Ko je skupina odpremljena, se v celoti premakne v »Zaključeno«. Podatki se ne brišejo; v tem razdelku lahko status popraviš in delo znova odpreš. Namizna tabela za zaključene faze pokaže le kratko oznako ✓; klik nanjo odpre zaključeni del projekta. Kartica in povzetek poudarjata samo še preostale obveznosti.
