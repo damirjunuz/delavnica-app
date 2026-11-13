@@ -181,6 +181,31 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(j['raw_sheet'], 'active')
         self.assertEqual(j['sheet'], 'na')
 
+    def test_sheet_manufacturing_and_paper_dates(self):
+        c = self.login()
+        j = self.create(c, sheet='manufacturing', raw_sheet='manufacturing',
+                        sheet_papers_date='2026-11-10', raw_sheet_papers_date='2026-11-12')
+        self.assertEqual(j['sheet'], 'manufacturing')
+        self.assertEqual(j['raw_sheet'], 'manufacturing')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'sheet': 'painting', 'raw_sheet': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['sheet_papers_date'], '2026-11-10')
+        self.assertEqual(j['raw_sheet_papers_date'], '2026-11-12')
+        for value in ('2026-02-30', '13.11.2026', 123):
+            self.assertEqual(self.request('PATCH', '/api/jobs/' + j['id'], {
+                'version': j['version'], 'sheet_papers_date': value}, c)[0], 400)
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'sheet_papers_date': '2026-11-09'}, c)
+        self.assertEqual(status, 200)
+        events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=c)[1]['events']
+        self.assertEqual(events[0]['field'], 'sheet_papers_date')
+        self.assertEqual(events[0]['new_value'], '2026-11-09')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'sheet_papers_date': ''}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['raw_sheet_papers_date'], '2026-11-12')
+
     def test_manual_notes_and_small_material(self):
         c = self.login()
         j = self.create(c, notes='Preveri mero pred sestavljanjem', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos')
@@ -237,6 +262,8 @@ class WorkshopTests(unittest.TestCase):
                 del payload['anchors']
                 del payload['anchors_status']
                 del payload['small_material_status']
+                del payload['sheet_papers_date']
+                del payload['raw_sheet_papers_date']
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -252,6 +279,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(jobs[active['id']]['small_material'], '')
         self.assertEqual(jobs[active['id']]['anchors_status'], 'waiting')
         self.assertEqual(jobs[complete['id']]['small_material_status'], 'na')
+        self.assertEqual(jobs[active['id']]['sheet_papers_date'], '')
+        self.assertEqual(jobs[complete['id']]['raw_sheet_papers_date'], '')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
@@ -266,13 +295,14 @@ class WorkshopTests(unittest.TestCase):
 
     def test_persistence_after_restart(self):
         c = self.login()
-        j = self.create(c, notes='Ohranjeno po zagonu', small_material='Vijaki – 40 kos')
+        j = self.create(c, notes='Ohranjeno po zagonu', small_material='Vijaki – 40 kos', sheet_papers_date='2026-11-11')
         self.process.terminate()
         self.process.communicate(timeout=10)
         self.start()
         current = next(x for x in self.request('GET', '/api/jobs', cookie=c)[1]['jobs'] if x['id'] == j['id'])
         self.assertEqual(current['notes'], 'Ohranjeno po zagonu')
         self.assertEqual(current['small_material'], 'Vijaki – 40 kos')
+        self.assertEqual(current['sheet_papers_date'], '2026-11-11')
         with sqlite3.connect(Path(self.temp.name) / 'delavnica.sqlite3') as db:
             self.assertIsNotNone(db.execute('SELECT id FROM events WHERE job_id=?', (j['id'],)).fetchone())
 
