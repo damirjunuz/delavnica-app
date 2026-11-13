@@ -34,14 +34,22 @@ FIELDS = {
     'small_material_status': ['waiting', 'done', 'na'],
     'caps_status': ['waiting', 'done', 'na'],
     'subcaps_status': ['waiting', 'done', 'na'],
+    'anchors_dispatch': ['waiting', 'done', 'blocked', 'na'],
+    'small_material_dispatch': ['waiting', 'done', 'blocked', 'na'],
+    'caps_dispatch': ['waiting', 'done', 'blocked', 'na'],
+    'subcaps_dispatch': ['waiting', 'done', 'blocked', 'na'],
 }
+SHIPMENTS = (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch'),
+             ('anchors_status', 'anchors_dispatch'), ('small_material_status', 'small_material_dispatch'),
+             ('caps_status', 'caps_dispatch'), ('subcaps_status', 'subcaps_dispatch'))
 LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
           'machining': 'Obdelava', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
           'sheet': 'Barvana pločevina', 'raw_sheet': 'Surova pločevina', 'dispatch': 'Odprema fasade',
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
           'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'anchors': 'Sidra',
           'anchors_status': 'Priprava sider', 'small_material_status': 'Priprava drobnega materiala',
-          'caps': 'Kape', 'subcaps': 'Podkape', 'caps_status': 'Priprava kap', 'subcaps_status': 'Priprava podkap',
+          'caps': 'Kape', 'subcaps': 'Podkape', 'caps_status': 'Priprava kap', 'subcaps_status': 'Priprava podkap', 'anchors_dispatch': 'Odprema sider',
+          'small_material_dispatch': 'Odprema drobnega materiala', 'caps_dispatch': 'Odprema kap', 'subcaps_dispatch': 'Odprema podkap',
           'small_material': 'Drobni material', 'sheet_papers_date': 'Oddani papirji – barvana pločevina',
           'raw_sheet_papers_date': 'Oddani papirji – surova pločevina', 'archived': 'Arhiv'}
 STATUS = {'waiting': 'Čaka', 'active': 'V delu', 'done': 'Končano', 'blocked': 'Zastoj',
@@ -101,6 +109,16 @@ def init():
                 if field not in values:
                     values[field] = default
                     changed = True
+            added_shipments = False
+            for preparation, shipping in SHIPMENTS[2:]:
+                if shipping not in values:
+                    values[shipping] = 'na' if values[preparation] == 'na' else 'waiting'
+                    changed = True
+                    added_shipments = True
+            if added_shipments and values['archived'] and values['dispatch'] == 'done' and not fully_shipped(values):
+                values['archived'] = False
+                c.execute('INSERT INTO events(job_id,actor,at,field,old_value,new_value) VALUES (?,?,?,?,?,?)',
+                          (row['id'], 'Sistem – ločene odpreme', now(), 'archived', 'True', 'False'))
             if changed:
                 c.execute('UPDATE jobs SET payload=?,version=version+1 WHERE id=?', (json.dumps(values), row['id']))
 
@@ -108,24 +126,27 @@ def init():
 def fully_shipped(values):
     return values['dispatch'] == 'done' and all(
         values.get(stage, 'na') == 'na' or values.get(shipping, 'na') == 'done'
-        for stage, shipping in (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch')))
+        for stage, shipping in SHIPMENTS)
 
 
 def shipment_patch(values, patch):
     """Derive shipping state without discarding a partially delivered order."""
     result = {**values, **patch}
-    for stage, shipping in (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch')):
+    for stage, shipping in SHIPMENTS:
         if result[stage] == 'na' and result.get(shipping) != 'na':
             patch[shipping] = 'na'
         elif result[stage] != 'na' and result.get(shipping, 'na') == 'na':
+            patch[shipping] = 'waiting'
+    for preparation, shipping in SHIPMENTS:
+        if preparation in patch and patch[preparation] != values[preparation] and patch[preparation] not in ('done', 'na') and values.get(shipping) == 'done' and shipping not in patch:
             patch[shipping] = 'waiting'
     result.update(patch)
     if patch.get('archived') is False and values.get('archived') and fully_shipped(values):
         patch.setdefault('dispatch', 'waiting')
         result.update(patch)
     if patch.get('archived') is True and not fully_shipped({**values, **patch}):
-        raise Problem(400, 'Nalog ostane aktiven, dokler nista odpremljeni fasada in vsa potrebna pločevina.')
-    if {'dispatch', 'sheet_dispatch', 'sheet', 'raw_sheet', 'raw_sheet_dispatch'} & patch.keys():
+        raise Problem(400, 'Nalog ostane aktiven, dokler niso odpremljeni fasada in vsi drugi potrebni deli.')
+    if ({'dispatch'} | {key for pair in SHIPMENTS for key in pair}) & patch.keys():
         patch['archived'] = fully_shipped(result)
     return patch
 
@@ -296,7 +317,7 @@ class Handler(BaseHTTPRequestHandler):
                 for text, status in (('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
                     if values[text] and status not in data:
                         values[status] = 'waiting'
-                values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'raw_sheet', 'raw_sheet_dispatch', 'dispatch')}))
+                values.update(shipment_patch(values, {k: values[k] for k in ({'dispatch'} | {key for pair in SHIPMENTS for key in pair})}))
                 uid, stamp = secrets.token_hex(12), now()
                 with connect() as c:
                     c.execute('INSERT INTO jobs VALUES (?,?,?,?,?)', (uid, 1, json.dumps(values), stamp, stamp))
