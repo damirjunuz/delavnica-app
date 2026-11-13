@@ -128,7 +128,7 @@ V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so za
 
 ## Pregled na telefonu
 
-Na zaslonih do 900 px širine se projekti prikažejo kot kartice z nazivom, rokom, odgovorno osebo, stanjem in napredkom. Klik na projekt odpre pregled čez cel zaslon: izdelava, skladišče, barvana/surova pločevina, ločene odpreme in opombe. Na širšem računalniškem zaslonu ostane tabela.
+Na zaslonih do 900 px širine se projekti prikažejo kot kartice z nazivom, rokom, odgovorno osebo, stanjem in napredkom. Klik na projekt odpre pregled čez cel zaslon: izdelava, skladišče, barvana/surova pločevina, ločene odpreme in opombe. Tudi na računalniku je glavni pregled sestavljen iz kartic projektov.
 
 Statusi v odprtem projektu se shranijo takoj. Skladiščnik lahko sidra in drobni material označi kot pripravljena z enim klikom. Gumb »Opombe, material in urejanje« odpre obrazec za besedila; tam spremembe potrdiš z »Shrani nalog«. Za vrnitev na seznam uporabi »← Projekti«. Filtri in iskanje veljajo tudi za kartice. Odprti projekt se ob osvežitvi posodobi brez prepisovanja neshranjenega obrazca za urejanje.
 
@@ -154,4 +154,8 @@ Ob nadgradnji nove odpreme potrebnih skupin dobijo stanje »Čaka odpremo«. Tud
 
 Projekt privzeto pokaže preostalo delo. Končane proizvodne faze se umaknejo v zložljiv razdelek **Zaključeno / ni potrebno**. Ko je fasada odpremljena, se celotna izdelava fasade in njena odprema umakneta tja; sidra, kape in druge še odprte skupine ostanejo vidne. Skupine, ki niso potrebne, so prav tako v zloženem razdelku.
 
-**Pripravljeno** še vedno čaka na ločeno odpremo: pripravljeni del ostane v odprtem delu s svojim gumbom za odpremo, potrjena priprava pa se umakne med zaključene faze. Ko je skupina odpremljena, se v celoti premakne v »Zaključeno«. Podatki se ne brišejo; v tem razdelku lahko status popraviš in delo znova odpreš. Namizna tabela za zaključene faze pokaže le kratko oznako ✓; klik nanjo odpre zaključeni del projekta. Kartica in povzetek poudarjata samo še preostale obveznosti.
+**Pripravljeno** še vedno čaka na ločeno odpremo: pripravljeni del ostane v odprtem delu s svojim gumbom za odpremo, potrjena priprava pa se umakne med zaključene faze. Ko je skupina odpremljena, se v celoti premakne v »Zaključeno«. Podatki se ne brišejo; v tem razdelku lahko status popraviš in delo znova odpreš. Na računalniku klikni kartico projekta in razširi razdelek »Zaključeno«, če želiš pogledati ali popraviti zaključene faze. Kartica in povzetek poudarjata samo še preostale obveznosti.
+
+## Kartice projektov tudi na računalniku
+
+Široko tabelo nadomesti mreža kartic: na običajnem računalniku dve ali tri v vrsti, na zelo širokem zaslonu štiri, na telefonu ena. Vsaka kartica pokaže oznako, objekt, rok, odgovorno osebo, stanje in napredek. Klik odpre širši pregled projekta z odprtimi nalogami v dveh stolpcih; zaključeno delo ostane zloženo spodaj. Iskalnik, filtri in takojšnje shranjevanje statusov delujejo enako kot prej. Na telefonu ostane pregled čez cel zaslon.
