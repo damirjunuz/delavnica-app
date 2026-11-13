@@ -13,7 +13,7 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='waiting', subcaps_status='done', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='manufacturing', subcaps_status='manufacturing', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
@@ -26,7 +26,7 @@ seeds = [
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v12';
+const demoKey='delavnica-predogled-v13';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
