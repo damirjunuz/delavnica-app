@@ -88,7 +88,7 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(next(x for x in shared if x['id'] == j['id'])['sheet'], 'painting')
         events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=a)[1]['events']
         self.assertEqual(events[0]['actor'], 'Test Sodelavec')
-        self.assertEqual({e['field'] for e in events}, {'created', 'material', 'sheet'})
+        self.assertEqual({e['field'] for e in events}, {'created', 'material', 'sheet', 'sheet_dispatch'})
 
     def test_concurrent_writes_do_not_overwrite(self):
         a, b = self.login('Test A'), self.login('Test B')
@@ -110,9 +110,63 @@ class WorkshopTests(unittest.TestCase):
         _, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'archived': False}, c)
         self.assertFalse(j['archived'])
         self.assertEqual(j['dispatch'], 'waiting')
-        _, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'archived': True}, c)
-        self.assertTrue(j['archived'])
+        status, _, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'archived': True}, c)
+        self.assertEqual(status, 400)
         self.assertEqual(j['dispatch'], 'waiting')
+
+    def test_separate_facade_and_sheet_shipments(self):
+        c = self.login()
+        j = self.create(c, sheet='awaiting_paint')
+        self.assertEqual(j['sheet_dispatch'], 'waiting')
+        def patch(**fields):
+            nonlocal j
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], **fields}, c)
+            self.assertEqual(status, 200, j)
+        patch(dispatch='done')
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['sheet'], 'awaiting_paint')
+        patch(sheet='painting')
+        self.assertFalse(j['archived'])
+        patch(sheet='done')
+        self.assertFalse(j['archived'])
+        patch(sheet_dispatch='done')
+        self.assertTrue(j['archived'])
+        patch(sheet_dispatch='waiting')
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['dispatch'], 'done')
+        patch(sheet='na')
+        self.assertTrue(j['archived'])
+        self.assertEqual(j['sheet_dispatch'], 'na')
+        patch(sheet='ordered')
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['sheet_dispatch'], 'waiting')
+
+    def test_sheet_can_ship_first(self):
+        c = self.login()
+        j = self.create(c, sheet='done', sheet_dispatch='done')
+        self.assertFalse(j['archived'])
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['archived'])
+
+    def test_upgrade_preserves_legacy_orders(self):
+        c = self.login()
+        active = self.create(c, sheet='painting')
+        complete = self.create(c, sheet='done', sheet_dispatch='done', dispatch='done')
+        with sqlite3.connect(Path(self.temp.name) / 'delavnica.sqlite3') as db:
+            for j in (active, complete):
+                payload = json.loads(db.execute('SELECT payload FROM jobs WHERE id=?', (j['id'],)).fetchone()[0])
+                del payload['sheet_dispatch']
+                db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
+        self.process.terminate()
+        self.process.communicate(timeout=10)
+        self.start()
+        jobs = {j['id']: j for j in self.request('GET', '/api/jobs', cookie=c)[1]['jobs']}
+        self.assertEqual(jobs[active['id']]['sheet_dispatch'], 'waiting')
+        self.assertEqual(jobs[active['id']]['sheet'], 'painting')
+        self.assertFalse(jobs[active['id']]['archived'])
+        self.assertEqual(jobs[complete['id']]['sheet_dispatch'], 'done')
+        self.assertTrue(jobs[complete['id']]['archived'])
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
