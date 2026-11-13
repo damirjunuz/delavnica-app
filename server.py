@@ -35,7 +35,7 @@ LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': '
           'machining': 'Obdelava', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
           'sheet': 'Barvana pločevina', 'raw_sheet': 'Surova pločevina', 'dispatch': 'Odprema fasade',
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
-          'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'archived': 'Arhiv'}
+          'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'small_material': 'Drobni material', 'archived': 'Arhiv'}
 STATUS = {'waiting': 'Čaka', 'active': 'V delu', 'done': 'Končano', 'blocked': 'Zastoj',
           'ordered': 'Naročeno', 'awaiting_paint': 'Čaka barvanje', 'painting': 'Na barvanju', 'na': 'Ni potrebno'}
 
@@ -85,6 +85,9 @@ def init():
                 if field not in values:
                     values[field] = 'na'
                     changed = True
+            if 'small_material' not in values:
+                values['small_material'] = ''
+                changed = True
             if changed:
                 c.execute('UPDATE jobs SET payload=?,version=version+1 WHERE id=?', (json.dumps(values), row['id']))
 
@@ -127,7 +130,7 @@ class Problem(Exception):
 def validate(data, create=False):
     if not isinstance(data, dict):
         raise Problem(400, 'Neveljavni podatki.')
-    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'archived'}
+    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'small_material', 'archived'}
     if set(data) - allowed:
         raise Problem(400, 'Neznano polje.')
     for key, value in data.items():
@@ -138,7 +141,7 @@ def validate(data, create=False):
             if type(value) is not bool:
                 raise Problem(400, 'Neveljaven arhiv.')
         else:
-            limit = 4000 if key == 'notes' else 160
+            limit = 4000 if key in ('notes', 'small_material') else 160
             if not isinstance(value, str) or len(value) > limit:
                 raise Problem(400, 'Predolgo ali neveljavno besedilo.')
             data[key] = value.strip()
@@ -274,7 +277,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {'ok': True}, cookie='session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + ('; Secure' if SECURE else ''))
             if path == '/api/jobs' and self.command == 'POST':
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
+                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'small_material': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
                 values.update(validate(data, create=True))
                 values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'raw_sheet', 'raw_sheet_dispatch', 'dispatch')}))
                 uid, stamp = secrets.token_hex(12), now()
