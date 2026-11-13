@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je sedemnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je osemnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -140,7 +140,7 @@ Datum se ne ugiba iz dneva spremembe statusa; vpiše ga uporabnik in ostane shra
 
 ## Kape in podkape
 
-Nova samostojna rubrika vsebuje ločena seznama **Kape** in **Podkape**. Vpišeš tip, mere, barvo in količino v podrobnostih naloga. Vsak seznam ima svojo pripravo: **Ni potrebno / Čaka pripravo / ✓ Pripravljeno**. V glavnem pregledu in mobilnem projektu se priprava potrdi z enim klikom; ponoven klik vrne čakanje.
+Nova samostojna rubrika vsebuje ločena seznama **Kape** in **Podkape**. Vpišeš tip, mere, barvo in količino v podrobnostih naloga. Vsak seznam ima svojo pripravo: **Ni potrebno / Čaka izdelavo / V izdelavi / ✓ Pripravljeno**. Klik na pripravo kap ali podkap odpre izbiro statusa, kjer lahko označiš tudi »V izdelavi«.
 
 Prazni novi in obstoječi nalogi imajo obe skupini označeni kot nepotrebni. Ko vpišeš seznam, se njegova skupina aktivira kot »Čaka pripravo«. Sprememba že potrjenega seznama zahteva ponovno pripravo. Kape in podkape imata ločeno odpremo, spremembe pa so v zgodovini. Na telefonu je rubrika »Kape in podkape« v odprtem projektu, na računalniku v svojem stolpcu.
 
@@ -163,3 +163,9 @@ Projekt privzeto pokaže preostalo delo. Končane proizvodne faze se umaknejo v 
 ## Oznaki na karticah
 
 Aktivno delo je označeno kot **V izdelavi**, pripravljena neodpremljena faza oziroma skupina pa kot **Čaka odpremo**. Enaki oznaki sta na filtrih in števcih. Odpremljeni projekt z drugimi odprtimi deli še vedno kaže **Delno odpremljeno**; vse njegove odpreme ostanejo ločene.
+
+## Izbira »V izdelavi« pri kapah, podkapah in pločevini
+
+Pri kapah in podkapah klik na **Pripravo** odpre izbiro **Ni potrebno / Čaka izdelavo / V izdelavi / Pripravljeno**; ne potrdi več samodejno priprave. Sidra in drobni material še vedno uporabljata hitro potrditev z enim klikom.
+
+Pri neodpremljeni barvani in surovi pločevini ter kapah/podkapah ostane gumb **Priprava** viden tudi po oznaki »Pripravljeno«. Zato je mogoče ponovno izbrati **V izdelavi**, namesto da bi bila vidna le odprema. Odprema je ločen gumb. Že odpremljeni deli so še vedno pod »Zaključeno«; sprememba njihove priprave na »V izdelavi« ponovno odpre samo njihovo odpremo in projekt ohrani ostale odpreme.
