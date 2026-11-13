@@ -200,6 +200,29 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(cleared['small_material'], '')
 
+    def test_warehouse_preparation_and_changed_lists(self):
+        leader, worker = self.login('Test Vodja'), self.login('Test Skladiščnik')
+        j = self.create(leader, anchors='Sidra SDe 12 – 12 kos', small_material='Vijaki – 40 kos')
+        self.assertEqual(j['anchors_status'], 'waiting')
+        self.assertEqual(j['small_material_status'], 'waiting')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'anchors_status': 'done', 'small_material_status': 'done'}, worker)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['anchors'], 'Sidra SDe 12 – 12 kos')
+        events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=leader)[1]['events']
+        self.assertEqual({e['field'] for e in events if e['actor'] == 'Test Skladiščnik'}, {'anchors_status', 'small_material_status'})
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'anchors': 'Sidra SDe 12 – 14 kos', 'notes': 'Dopolnitev'}, leader)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['anchors_status'], 'waiting')
+        self.assertEqual(j['small_material_status'], 'done')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'small_material': 'Vijaki – 50 kos'}, leader)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['small_material_status'], 'waiting')
+        self.assertEqual(self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'anchors_status': 'painting'}, worker)[0], 400)
+
     def test_upgrade_preserves_legacy_orders(self):
         c = self.login()
         active = self.create(c, sheet='painting')
@@ -211,6 +234,9 @@ class WorkshopTests(unittest.TestCase):
                 del payload['raw_sheet']
                 del payload['raw_sheet_dispatch']
                 del payload['small_material']
+                del payload['anchors']
+                del payload['anchors_status']
+                del payload['small_material_status']
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -224,6 +250,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(jobs[active['id']]['raw_sheet'], 'na')
         self.assertEqual(jobs[complete['id']]['raw_sheet_dispatch'], 'na')
         self.assertEqual(jobs[active['id']]['small_material'], '')
+        self.assertEqual(jobs[active['id']]['anchors_status'], 'waiting')
+        self.assertEqual(jobs[complete['id']]['small_material_status'], 'na')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
