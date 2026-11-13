@@ -299,6 +299,25 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(j['caps_dispatch'], 'waiting')
         self.assertEqual(j['dispatch'], 'done')
 
+    def test_manufacturing_can_be_selected_again_for_caps_and_sheets(self):
+        c = self.login()
+        j = self.create(c, dispatch='done', sheet='done', sheet_dispatch='done',
+                        raw_sheet='done', raw_sheet_dispatch='done',
+                        caps='Kape', caps_status='done', caps_dispatch='done',
+                        subcaps='Podkape', subcaps_status='done', subcaps_dispatch='done',
+                        sheet_papers_date='2026-11-11')
+        self.assertTrue(j['archived'])
+        for preparation, shipping in [('caps_status', 'caps_dispatch'), ('subcaps_status', 'subcaps_dispatch'),
+                                      ('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch')]:
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+                'version': j['version'], preparation: 'manufacturing'}, c)
+            self.assertEqual(status, 200, j)
+            self.assertEqual(j[preparation], 'manufacturing')
+            self.assertEqual(j[shipping], 'waiting')
+            self.assertEqual(j['dispatch'], 'done')
+            self.assertFalse(j['archived'])
+            self.assertEqual(j['sheet_papers_date'], '2026-11-11')
+
     def test_upgrade_reopens_previously_archived_pending_supplies(self):
         c = self.login()
         j = self.create(c, anchors='Sidra – 12 kos', anchors_status='done', caps='Kape – 20 kos', caps_status='done')
