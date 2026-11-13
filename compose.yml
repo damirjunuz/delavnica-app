@@ -1,0 +1,23 @@
+services:
+  delavnica-app:
+    build: .
+    restart: unless-stopped
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:?Nastavi APP_PASSWORD v .env}
+      APP_ORIGIN: ${APP_ORIGIN:?Nastavi APP_ORIGIN v .env}
+    volumes:
+      - delavnica_data:/data
+    ports:
+      - "127.0.0.1:3110:3100"
+    networks: [caddy]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    stop_grace_period: 20s
+volumes:
+  delavnica_data:
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-n8n_n8n-network}
