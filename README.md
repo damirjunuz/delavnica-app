@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je dvanajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je trinajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -119,3 +119,9 @@ Ob nadgradnji ostanejo dosedanji statusi pločevine pod »Barvana«. Nova surova
 Klikni oznako naloga. V polje **Opombe / kaj manjka** vpiši navodila ali dogovor, v ločeno večvrstično polje **Drobni material** pa vijake, sidra, tesnila in količine. Primer: »Vijaki M8 – 24 kos; sidra – 12 kos«. Obe polji omogočata do 4000 znakov; vpis potrdi z **Shrani nalog**.
 
 Kratka vsebina obeh polj je vidna pod oznako naloga v glavni tabeli, celoten zapis pa v podrobnostih. Iskalnik pregleduje tudi drobni material. Spremembe se zabeležijo v zgodovini z imenom in časom. Obstoječe opombe ostanejo ohranjene, novi drobni material je pri starih nalogih prazen. Vpis drobnega materiala ne spremeni barvnega statusa naročila materiala in ne vodi zaloge.
+
+## Sidra in priprava v skladišču
+
+V podrobnostih naloga je ločen ročni seznam **Sidra** (tip, oznaka, količina), poleg seznama **Drobni material**. Oba seznama sta v glavnem pregledu v svojih stolpcih. Skladiščnik se prijavi s svojim imenom in klikne **Čaka pripravo**; status se takoj spremeni v zeleno **✓ Pripravljeno**. Dodatno shranjevanje ali odpiranje naloga za ta klik ni potrebno. Ponoven klik vrne stanje na »Čaka pripravo«.
+
+V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so zapisane v zgodovini z imenom in časom. Če se že potrjeni seznam sider ali drobnega materiala spremeni, se njegova priprava samodejno vrne na »Čaka pripravo«, razen če uporabnik v istem shranjevanju izrecno spremeni tudi status. Pripravljenost fasade za odpremo upošteva pripravo obeh skupin. Pri nadgradnji stari aktivni nalogi dobijo »Čaka pripravo«, stari arhivirani pa »Ni potrebno«, da se zaključeni nalogi ohranijo.
