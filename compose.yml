@@ -8,7 +8,7 @@ services:
     volumes:
       - delavnica_data:/data
     ports:
-      - "127.0.0.1:3110:3100"
+      - "127.0.0.1:${APP_PORT:-3111}:3100"
     networks: [caddy]
     security_opt: ["no-new-privileges:true"]
     cap_drop: [ALL]
