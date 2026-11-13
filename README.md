@@ -125,3 +125,9 @@ Kratka vsebina obeh polj je vidna pod oznako naloga v glavni tabeli, celoten zap
 V podrobnostih naloga je ločen ročni seznam **Sidra** (tip, oznaka, količina), poleg seznama **Drobni material**. Oba seznama sta v glavnem pregledu v svojih stolpcih. Skladiščnik se prijavi s svojim imenom in klikne **Čaka pripravo**; status se takoj spremeni v zeleno **✓ Pripravljeno**. Dodatno shranjevanje ali odpiranje naloga za ta klik ni potrebno. Ponoven klik vrne stanje na »Čaka pripravo«.
 
 V podrobnostih je mogoče izbrati tudi »Ni potrebno«. Spremembe priprave so zapisane v zgodovini z imenom in časom. Če se že potrjeni seznam sider ali drobnega materiala spremeni, se njegova priprava samodejno vrne na »Čaka pripravo«, razen če uporabnik v istem shranjevanju izrecno spremeni tudi status. Pripravljenost fasade za odpremo upošteva pripravo obeh skupin. Pri nadgradnji stari aktivni nalogi dobijo »Čaka pripravo«, stari arhivirani pa »Ni potrebno«, da se zaključeni nalogi ohranijo.
+
+## Pregled na telefonu
+
+Na zaslonih do 900 px širine se projekti prikažejo kot kartice z nazivom, rokom, odgovorno osebo, stanjem in napredkom. Klik na projekt odpre pregled čez cel zaslon: izdelava, skladišče, barvana/surova pločevina, ločene odpreme in opombe. Na širšem računalniškem zaslonu ostane tabela.
+
+Statusi v odprtem projektu se shranijo takoj. Skladiščnik lahko sidra in drobni material označi kot pripravljena z enim klikom. Gumb »Opombe, material in urejanje« odpre obrazec za besedila; tam spremembe potrdiš z »Shrani nalog«. Za vrnitev na seznam uporabi »← Projekti«. Filtri in iskanje veljajo tudi za kartice. Odprti projekt se ob osvežitvi posodobi brez prepisovanja neshranjenega obrazca za urejanje.
