@@ -32,6 +32,8 @@ FIELDS = {
     'raw_sheet_dispatch': ['waiting', 'done', 'blocked', 'na'],
     'anchors_status': ['waiting', 'done', 'na'],
     'small_material_status': ['waiting', 'done', 'na'],
+    'caps_status': ['waiting', 'done', 'na'],
+    'subcaps_status': ['waiting', 'done', 'na'],
 }
 LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
           'machining': 'Obdelava', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
@@ -39,6 +41,7 @@ LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': '
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
           'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'anchors': 'Sidra',
           'anchors_status': 'Priprava sider', 'small_material_status': 'Priprava drobnega materiala',
+          'caps': 'Kape', 'subcaps': 'Podkape', 'caps_status': 'Priprava kap', 'subcaps_status': 'Priprava podkap',
           'small_material': 'Drobni material', 'sheet_papers_date': 'Oddani papirji – barvana pločevina',
           'raw_sheet_papers_date': 'Oddani papirji – surova pločevina', 'archived': 'Arhiv'}
 STATUS = {'waiting': 'Čaka', 'active': 'V delu', 'done': 'Končano', 'blocked': 'Zastoj',
@@ -93,7 +96,7 @@ def init():
             if 'small_material' not in values:
                 values['small_material'] = ''
                 changed = True
-            for field, default in (('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
+            for field, default in (('caps', ''), ('subcaps', ''), ('caps_status', 'na'), ('subcaps_status', 'na'), ('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
                                    ('small_material_status', 'na' if values['archived'] else 'waiting')):
                 if field not in values:
                     values[field] = default
@@ -140,7 +143,7 @@ class Problem(Exception):
 def validate(data, create=False):
     if not isinstance(data, dict):
         raise Problem(400, 'Neveljavni podatki.')
-    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
+    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'caps', 'subcaps', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
     if set(data) - allowed:
         raise Problem(400, 'Neznano polje.')
     for key, value in data.items():
@@ -151,7 +154,7 @@ def validate(data, create=False):
             if type(value) is not bool:
                 raise Problem(400, 'Neveljaven arhiv.')
         else:
-            limit = 4000 if key in ('notes', 'anchors', 'small_material') else 160
+            limit = 4000 if key in ('notes', 'anchors', 'small_material', 'caps', 'subcaps') else 160
             if not isinstance(value, str) or len(value) > limit:
                 raise Problem(400, 'Predolgo ali neveljavno besedilo.')
             data[key] = value.strip()
@@ -288,8 +291,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(200, {'ok': True}, cookie='session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + ('; Secure' if SECURE else ''))
             if path == '/api/jobs' and self.command == 'POST':
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
+                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'caps': '', 'subcaps': '', 'caps_status': 'na', 'subcaps_status': 'na', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
                 values.update(validate(data, create=True))
+                for text, status in (('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
+                    if values[text] and status not in data:
+                        values[status] = 'waiting'
                 values.update(shipment_patch(values, {k: values[k] for k in ('sheet', 'sheet_dispatch', 'raw_sheet', 'raw_sheet_dispatch', 'dispatch')}))
                 uid, stamp = secrets.token_hex(12), now()
                 with connect() as c:
@@ -312,8 +318,8 @@ class Handler(BaseHTTPRequestHandler):
                     if row['version'] != version:
                         raise Problem(409, 'Nalog je medtem spremenil sodelavec. Osveži podatke in ponovi spremembo.')
                     values = json.loads(row['payload'])
-                    for text, status in (('anchors', 'anchors_status'), ('small_material', 'small_material_status')):
-                        if text in patch and patch[text] != values[text] and values[status] == 'done' and status not in patch:
+                    for text, status in (('anchors', 'anchors_status'), ('small_material', 'small_material_status'), ('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
+                        if text in patch and patch[text] != values[text] and (values[status] == 'done' or (text in ('caps', 'subcaps') and values[status] == 'na' and patch[text])) and status not in patch:
                             patch[status] = 'waiting'
                     patch = shipment_patch(values, patch)
                     stamp = now()
