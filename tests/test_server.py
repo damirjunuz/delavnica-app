@@ -248,6 +248,32 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(self.request('PATCH', '/api/jobs/' + j['id'], {
             'version': j['version'], 'anchors_status': 'painting'}, worker)[0], 400)
 
+    def test_caps_and_subcaps_preparation(self):
+        c = self.login()
+        blank = self.create(c)
+        self.assertEqual(blank['caps_status'], 'na')
+        self.assertEqual(blank['subcaps_status'], 'na')
+        j = self.create(c, caps='Kape – 20 kos', subcaps='Podkape – 12 kos')
+        self.assertEqual(j['caps_status'], 'waiting')
+        self.assertEqual(j['subcaps_status'], 'waiting')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'caps_status': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['subcaps_status'], 'waiting')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'caps': 'Kape – 24 kos'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['caps_status'], 'waiting')
+        self.assertEqual(j['subcaps'], 'Podkape – 12 kos')
+        events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=c)[1]['events']
+        self.assertIn('caps_status', {e['field'] for e in events})
+        status, blank, _ = self.request('PATCH', '/api/jobs/' + blank['id'], {
+            'version': blank['version'], 'subcaps': 'Podkape – 10 kos'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(blank['subcaps_status'], 'waiting')
+        self.assertEqual(self.request('PATCH', '/api/jobs/' + blank['id'], {
+            'version': blank['version'], 'caps': ['bad']}, c)[0], 400)
+
     def test_upgrade_preserves_legacy_orders(self):
         c = self.login()
         active = self.create(c, sheet='painting')
@@ -264,6 +290,8 @@ class WorkshopTests(unittest.TestCase):
                 del payload['small_material_status']
                 del payload['sheet_papers_date']
                 del payload['raw_sheet_papers_date']
+                for key in ('caps', 'subcaps', 'caps_status', 'subcaps_status'):
+                    del payload[key]
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -281,6 +309,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(jobs[complete['id']]['small_material_status'], 'na')
         self.assertEqual(jobs[active['id']]['sheet_papers_date'], '')
         self.assertEqual(jobs[complete['id']]['raw_sheet_papers_date'], '')
+        self.assertEqual(jobs[active['id']]['caps_status'], 'na')
+        self.assertEqual(jobs[complete['id']]['subcaps_status'], 'na')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
