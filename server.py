@@ -13,6 +13,7 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
+APP_VERSION = '2026.11.16.3'
 ROOT = Path(__file__).parent
 DATA = Path(os.environ.get('DATA_DIR', '/data'))
 PASSWORD = os.environ.get('APP_PASSWORD', '')
@@ -270,7 +271,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/health':
                 with connect() as c:
                     c.execute('SELECT 1 FROM jobs LIMIT 1')
-                return self.send(200, {'ok': True})
+                return self.send(200, {'ok': True, 'version': APP_VERSION})
             files = {'/': ('index.html', 'text/html; charset=utf-8'),
                      '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
                      '/style.css': ('style.css', 'text/css; charset=utf-8')}
