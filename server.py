@@ -19,10 +19,11 @@ PASSWORD = os.environ.get('APP_PASSWORD', '')
 ORIGIN = os.environ.get('APP_ORIGIN', '').rstrip('/')
 SECURE = not ORIGIN.startswith('http://localhost:') and not ORIGIN.startswith('http://127.0.0.1:')
 FIELDS = {
-    'documentation': ['waiting', 'active', 'done', 'blocked'],
-    'material': ['waiting', 'ordered', 'done', 'blocked'],
+    'documentation': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'material': ['waiting', 'ordered', 'done', 'blocked', 'na'],
     'cutting': ['waiting', 'active', 'done', 'blocked', 'na'],
     'machining': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'punching': ['waiting', 'active', 'done', 'blocked', 'na'],
     'assembly': ['waiting', 'active', 'done', 'blocked', 'na'],
     'packing': ['waiting', 'active', 'done', 'blocked', 'na'],
     'sheet': ['waiting', 'ordered', 'manufacturing', 'awaiting_paint', 'painting', 'done', 'blocked', 'na'],
@@ -43,7 +44,7 @@ SHIPMENTS = (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch'),
              ('anchors_status', 'anchors_dispatch'), ('small_material_status', 'small_material_dispatch'),
              ('caps_status', 'caps_dispatch'), ('subcaps_status', 'subcaps_dispatch'))
 LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
-          'machining': 'Obdelava', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
+          'machining': 'Obdelava', 'punching': 'Štancanje', 'job_type': 'Vrsta naloga', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
           'sheet': 'Barvana pločevina', 'raw_sheet': 'Surova pločevina', 'dispatch': 'Odprema fasade',
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
           'due': 'Rok', 'owner': 'Odgovorna oseba', 'notes': 'Opombe', 'anchors': 'Sidra',
@@ -104,7 +105,7 @@ def init():
             if 'small_material' not in values:
                 values['small_material'] = ''
                 changed = True
-            for field, default in (('caps', ''), ('subcaps', ''), ('caps_status', 'na'), ('subcaps_status', 'na'), ('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
+            for field, default in (('job_type', 'facade'), ('punching', 'na'), ('caps', ''), ('subcaps', ''), ('caps_status', 'na'), ('subcaps_status', 'na'), ('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
                                    ('small_material_status', 'na' if values['archived'] else 'waiting')):
                 if field not in values:
                     values[field] = default
@@ -145,7 +146,7 @@ def shipment_patch(values, patch):
         patch.setdefault('dispatch', 'waiting')
         result.update(patch)
     if patch.get('archived') is True and not fully_shipped({**values, **patch}):
-        raise Problem(400, 'Nalog ostane aktiven, dokler niso odpremljeni fasada in vsi drugi potrebni deli.')
+        raise Problem(400, 'Nalog ostane aktiven, dokler niso odpremljeni glavni izdelek in vsi drugi potrebni deli.')
     if ({'dispatch'} | {key for pair in SHIPMENTS for key in pair}) & patch.keys():
         patch['archived'] = fully_shipped(result)
     return patch
@@ -164,7 +165,7 @@ class Problem(Exception):
 def validate(data, create=False):
     if not isinstance(data, dict):
         raise Problem(400, 'Neveljavni podatki.')
-    allowed = set(FIELDS) | {'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'caps', 'subcaps', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
+    allowed = set(FIELDS) | {'job_type', 'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'caps', 'subcaps', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
     if set(data) - allowed:
         raise Problem(400, 'Neznano polje.')
     for key, value in data.items():
@@ -179,6 +180,8 @@ def validate(data, create=False):
             if not isinstance(value, str) or len(value) > limit:
                 raise Problem(400, 'Predolgo ali neveljavno besedilo.')
             data[key] = value.strip()
+    if 'job_type' in data and data['job_type'] not in ('facade', 'windows'):
+        raise Problem(400, 'Izberi Fasada ali Okna.')
     for key in ('code', 'title'):
         if (create or key in data) and not data.get(key):
             raise Problem(400, 'Vpiši oznako naloga in objekt.')
@@ -311,9 +314,12 @@ class Handler(BaseHTTPRequestHandler):
                     c.execute('DELETE FROM sessions WHERE token=?', (digest,))
                 return self.send(200, {'ok': True}, cookie='session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0' + ('; Secure' if SECURE else ''))
             if path == '/api/jobs' and self.command == 'POST':
+                clean = validate(data, create=True)
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'caps': '', 'subcaps': '', 'caps_status': 'na', 'subcaps_status': 'na', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
-                values.update(validate(data, create=True))
+                values.update({'job_type': 'facade', 'punching': 'na', 'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'caps': '', 'subcaps': '', 'caps_status': 'na', 'subcaps_status': 'na', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
+                if clean.get('job_type') == 'windows':
+                    values.update(job_type='windows', documentation='na', material='na', machining='na', punching='waiting', anchors_status='na', small_material_status='na')
+                values.update(clean)
                 for text, status in (('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
                     if values[text] and status not in data:
                         values[status] = 'waiting'
