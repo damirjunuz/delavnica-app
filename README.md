@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je osemnajst integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je enaindvajset integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -173,3 +173,11 @@ Pri neodpremljeni barvani in surovi pločevini ter kapah/podkapah ostane gumb **
 ## Izdelano in odpremljeno
 
 Kape, podkape ter barvana in surova pločevina imajo ločeni stopnji **Izdelano** in **Odpremljeno**. Pri pripravi izbereš **V izdelavi** ali **Izdelano**. Pri odpremi nato posebej izbereš **Odpremljeno**. Izdelani deli ostanejo med odprtim delom in čakajo odpremo; v »Zaključeno« se skupina umakne šele po odpremi. Dosedanje oznake »Pripravljeno« pri teh štirih skupinah se prikažejo kot »Izdelano«; obstoječa stanja in podatki ostanejo ohranjeni.
+
+## Fasade in okna: izbira potrebnih faz
+
+Pri **Nov nalog** izberi **Fasada** ali **Okna**. Za okna so privzeto vključeni **Razrez → Štancanje → Sestavljanje → Pakiranje**. Štancanje je samostojna faza in ne spreminja obdelave/CNC pri fasadah. Pri oknih se glavni izdelek odpremi pod **Odprema oken**.
+
+S kljukicami izberi proizvodne faze in dodatne dele, ki jih potrebuješ. Lahko dodaš dokumentacijo, material, obdelavo/CNC, sidra, drobni material, kape/podkape ter pločevino ali katero od faz izključiš. Izključene faze so »Ni potrebno«; ne vplivajo na pripravljenost ali odstotek napredka in jih ni med odprtim delom. Izbiro lahko kasneje spremeniš v urejanju naloga. Na kartici je vidna vrsta naloga; nad pregledom filtriraš **Vse vrste / Fasade / Okna**.
+
+Obstoječi nalogi dobijo vrsto **Fasada** in štancanje **Ni potrebno**; njihova prejšnja stanja in ločene odpreme ostanejo ohranjeni. Sprememba vrste obstoječega naloga ne ponastavi opravljenih faz; uporabnik ročno izbere potrebne faze. Pri novem nalogu menjava vrste uporabi predlogo, vpisani osnovni podatki pa ostanejo v obrazcu.
