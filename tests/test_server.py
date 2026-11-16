@@ -124,6 +124,64 @@ class WorkshopTests(unittest.TestCase):
         events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=c)[1]['events']
         self.assertEqual(events[0]['field'], 'job_type')
 
+    def test_facade_with_windows_has_separate_production_and_dispatch(self):
+        c = self.login()
+        j = self.create(c, with_windows=True, cutting='done', machining='done', assembly='done', packing='done')
+        window_phases = ('window_cutting', 'window_punching', 'window_assembly', 'window_packing')
+        self.assertTrue(j['with_windows'])
+        self.assertTrue(all(j[k] == 'waiting' for k in window_phases))
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['windows_dispatch'], 'waiting')
+        for key in window_phases:
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], key: 'done'}, c)
+            self.assertEqual(status, 200)
+            self.assertEqual(j['dispatch'], 'done')
+            self.assertFalse(j['archived'])
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'windows_dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['archived'])
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'window_punching': 'active'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['windows_dispatch'], 'waiting')
+        self.assertEqual(j['dispatch'], 'done')
+
+    def test_add_windows_to_existing_dispatched_facade(self):
+        c = self.login()
+        j = self.create(c, dispatch='done', cutting='done', notes='Ohrani opombo')
+        self.assertTrue(j['archived'])
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'with_windows': True}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['cutting'], 'done')
+        self.assertEqual(j['dispatch'], 'done')
+        self.assertEqual(j['notes'], 'Ohrani opombo')
+        self.assertEqual(j['window_punching'], 'waiting')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'with_windows': False}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['archived'])
+        self.assertEqual(j['windows_dispatch'], 'na')
+        self.assertEqual(j['window_cutting'], 'na')
+
+    def test_mixed_windows_can_ship_first_and_skip_a_phase(self):
+        c = self.login()
+        j = self.create(c, with_windows=True, window_punching='na')
+        self.assertEqual(j['window_punching'], 'na')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'],
+            'window_cutting': 'done', 'window_assembly': 'done', 'window_packing': 'done', 'windows_dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['dispatch'], 'waiting')
+        self.assertEqual(j['cutting'], 'waiting')
+
+    def test_invalid_mixed_window_input_is_rejected(self):
+        c = self.login()
+        for extra in ({'with_windows': 'true'}, {'with_windows': True, 'window_punching': 'ordered'},
+                      {'job_type': 'windows', 'with_windows': True}):
+            self.assertEqual(self.request('POST', '/api/jobs', {'code': 'BAD', 'title': 'Test', **extra}, c)[0], 400)
+
     def test_shared_state_and_audit(self):
         a, b = self.login('Test Vodja'), self.login('Test Sodelavec')
         j = self.create(a, notes='Manjkajo stekla')
@@ -405,6 +463,8 @@ class WorkshopTests(unittest.TestCase):
                     del payload[key]
                 del payload['job_type']
                 del payload['punching']
+                for key in ('with_windows', 'window_cutting', 'window_punching', 'window_assembly', 'window_packing', 'windows_dispatch'):
+                    del payload[key]
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -426,6 +486,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(jobs[complete['id']]['subcaps_status'], 'na')
         self.assertEqual(jobs[active['id']]['job_type'], 'facade')
         self.assertEqual(jobs[complete['id']]['punching'], 'na')
+        self.assertFalse(jobs[active['id']]['with_windows'])
+        self.assertEqual(jobs[complete['id']]['windows_dispatch'], 'na')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
