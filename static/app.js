@@ -114,7 +114,7 @@ function windowSection(j,closed=false){
  if(!j.with_windows)return '';
  const phases=closed?windowPhases:windowPhases.filter(k=>!['done','na'].includes(j[k]));
  const controls=phases.map(k=>`<div class="project-stage"><span>${esc(labels[k])}</span>${statusButton(j,k)}</div>`).join('');
- return `<section class="project-section"><h2>Okna v fasadi${closed?' – odpremljena':''}</h2>${!closed&&windowReady(j)?'<p class="windows-ready">✓ Izdelano – čaka odpremo</p>':''}<div class="project-stage-grid">${controls}</div><div class="window-dispatch"><span>Odprema oken</span>${statusButton(j,'windows_dispatch')}</div></section>`;
+ return `<section class="project-section" id="projectWindows"><h2>Okna v fasadi${closed?' – odpremljena':''}</h2>${!closed&&windowReady(j)?'<p class="windows-ready">✓ Izdelano – čaka odpremo</p>':''}<div class="project-stage-grid">${controls}</div><div class="window-dispatch"><span>Odprema oken</span>${statusButton(j,'windows_dispatch')}</div></section>`;
 }
 function renderProject(){
  const j=jobs.find(j=>j.id===projectId);if(!j)return;
@@ -132,7 +132,22 @@ function renderProject(){
  const completedWindowPhases=j.with_windows&&j.windows_dispatch!=='done'?windowPhases.filter(k=>['done','na'].includes(j[k])):[];
  const completedCount=(j.with_windows&&j.windows_dispatch==='done'?1:0)+completedWindowPhases.length+work.closed.length+work.doneStages.length+work.preparedStages.length+(j.dispatch==='done'?1:0);
  const completedContent=(j.with_windows&&j.windows_dispatch==='done'?windowSection(j,true):'')+section('Okna v fasadi – končane faze',completedWindowPhases.length?'<div class="project-stage-grid">'+completedWindowPhases.map(stage).join('')+'</div>':'')+(j.dispatch==='done'?section(productName(j)+' – odpremljeno',statusButton(j,'dispatch')):'')+section(j.dispatch==='done'?'Faze odpremljenega izdelka':'Zaključene faze / ni potrebno',work.doneStages.length?'<div class="project-stage-grid">'+work.doneStages.map(stage).join('')+'</div>':'')+section('Pripravljeno – še čaka odpremo',work.preparedStages.length?'<div class="project-stage-grid">'+work.preparedStages.map(stage).join('')+'</div>':'')+section('Zaključene skupine / ni potrebno',work.closed.map(pair=>isSheet(pair)?sheetGroup(pair,true):materialGroup(pair,true)).join(''));
- $('#projectContent').innerHTML=`<div class="project-intro"><p class="eyebrow">${j.archived?'ARHIVIRAN PROJEKT':'ODPRTO DELO'} · ${jobKindName(j).toLocaleUpperCase('sl')}</p><h1 id="projectTitle">${esc(j.code)}</h1><p class="project-name">${esc(j.title)}</p><div class="project-info"><span>Rok: <strong>${esc(date(j.due))}</strong></span><span>Odgovorna oseba: <strong>${esc(j.owner||'Ni določena')}</strong></span></div><p class="project-partial">${esc(shipmentSummary(j))}</p><button type="button" class="secondary project-edit" data-edit="${esc(j.id)}">✎ Opombe, material in urejanje</button><p class="project-save-hint">Končano se umakne spodaj. Pripravljeno ostane odprto do odpreme.</p></div><div id="projectOpenWork">${activeSections||'<p class="all-done-message">✓ Vsi potrebni deli so odpremljeni.</p>'}</div>${completedCount?`<details id="completedWork" class="completed-work" ${completedExpanded?'open':''}><summary>Zaključeno / ni potrebno <span>${completedCount}</span></summary><p class="completed-help">Podatki ostajajo shranjeni. Tu lahko popraviš status ali ponovno odpreš delo.</p>${completedContent}</details>`:''}${section('Opombe',`<p class="project-text">${esc(j.notes||'Ni opomb.')}</p><button type="button" class="secondary project-edit" data-edit="${esc(j.id)}">Uredi podatke / zgodovina</button>`)}`;
+ $('#projectContent').innerHTML=`<div class="project-intro"><p class="eyebrow">${j.archived?'ARHIVIRAN PROJEKT':'ODPRTO DELO'} · ${jobKindName(j).toLocaleUpperCase('sl')}</p><h1 id="projectTitle">${esc(j.code)}</h1><p class="project-name">${esc(j.title)}</p><div class="project-info"><span>Rok: <strong>${esc(date(j.due))}</strong></span><span>Odgovorna oseba: <strong>${esc(j.owner||'Ni določena')}</strong></span></div><p class="project-partial">${esc(shipmentSummary(j))}</p><div class="project-actions"><button type="button" class="secondary project-edit" data-edit="${esc(j.id)}">✎ Opombe, material in urejanje</button>${j.job_type!=='windows'&&!j.with_windows?`<button type="button" class="primary project-add-windows" data-add-windows="${esc(j.id)}">＋ Dodaj okna v fasado</button>`:''}${j.with_windows?`<button type="button" class="secondary project-add-windows" data-show-windows="${esc(j.id)}">☑ Pokaži okna v fasadi</button>`:''}</div><p id="projectActionError" class="error" role="alert"></p><p class="project-save-hint">Končano se umakne spodaj. Pripravljeno ostane odprto do odpreme.</p></div><div id="projectOpenWork">${activeSections||'<p class="all-done-message">✓ Vsi potrebni deli so odpremljeni.</p>'}</div>${completedCount?`<details id="completedWork" class="completed-work" ${completedExpanded?'open':''}><summary>Zaključeno / ni potrebno <span>${completedCount}</span></summary><p class="completed-help">Podatki ostajajo shranjeni. Tu lahko popraviš status ali ponovno odpreš delo.</p>${completedContent}</details>`:''}${section('Opombe',`<p class="project-text">${esc(j.notes||'Ni opomb.')}</p><button type="button" class="secondary project-edit" data-edit="${esc(j.id)}">Uredi podatke / zgodovina</button>`)}`;
+}
+async function addWindowsToProject(id,button){
+ const j=jobs.find(x=>x.id===id);if(!j||j.job_type==='windows')return;
+ if(j.with_windows){showProjectWindows(id);return;}
+ button.disabled=true;$('#projectActionError').textContent='';
+ try{
+  const updated=await api('/api/jobs/'+id,'PATCH',{version:j.version,with_windows:true});
+  jobs=jobs.map(x=>x.id===id?updated:x);projectVersion=null;render();renderProject();showProjectWindows(id);
+ }catch(e){if(e.status===409)await load().catch(()=>{});$('#projectActionError').textContent=e.message;}
+ finally{button.disabled=false;}
+}
+function showProjectWindows(id){
+ if(projectId!==id)openProject(id);
+ const j=jobs.find(x=>x.id===id);if(j?.windows_dispatch==='done'&&$('#completedWork')){$('#completedWork').open=true;completedExpanded=true;}
+ $('#projectWindows')?.scrollIntoView?.({block:'start',behavior:'smooth'});
 }
 function openCompleted(id){openProject(id);const details=$('#completedWork');if(details){details.open=true;completedExpanded=true;details.scrollIntoView?.({block:'start',behavior:'smooth'});}}
 
@@ -148,7 +163,8 @@ function makeDraft(jobType='facade'){
 }
 function renderPhasePicker(){
  const checkbox=k=>`<label class="phase-choice"><input type="checkbox" data-phase="${k}" ${draft[k]!=='na'?'checked':''}><span>${esc(labels[k])}</span></label>`;
- $('#phasePicker').innerHTML='<h3>Potrebujem te faze</h3><div class="phase-choice-grid">'+productionPhases.map(checkbox).join('')+'</div><h3>Dodatni deli</h3><div class="phase-choice-grid">'+extraPhases.map(checkbox).join('')+'</div>'+(draft.job_type==='facade'?'<h3>Okna v istem projektu</h3><label class="phase-choice with-windows-choice"><input type="checkbox" data-with-windows '+(draft.with_windows?'checked':'')+'><span>Okna v fasadi</span></label>':'')+(draft.with_windows?'<h3>Faze oken v fasadi</h3><div class="phase-choice-grid">'+windowPhases.map(checkbox).join('')+'</div>':'');
+ const mixedChoice=draft.job_type==='facade'?'<div class="mixed-choice-top"><h3>Želiš dodati tudi okna?</h3><label class="phase-choice with-windows-choice"><input type="checkbox" data-with-windows '+(draft.with_windows?'checked':'')+'><span>Okna v fasadi</span></label><p class="hint">Okna dobijo svoje faze in ločeno odpremo v tem projektu.</p></div>':'';
+ $('#phasePicker').innerHTML=mixedChoice+'<h3>Potrebujem te faze</h3><div class="phase-choice-grid">'+productionPhases.map(checkbox).join('')+'</div><h3>Dodatni deli</h3><div class="phase-choice-grid">'+extraPhases.map(checkbox).join('')+'</div>'+(draft.with_windows?'<h3>Faze oken v fasadi</h3><div class="phase-choice-grid">'+windowPhases.map(checkbox).join('')+'</div>':'');
  for(const [phase,text] of [['anchors_status','anchors'],['small_material_status','small_material'],['caps_status','caps'],['subcaps_status','subcaps'],['sheet','sheet_papers_date'],['raw_sheet','raw_sheet_papers_date']]){const label=$('#jobForm').elements[text]?.closest?.('label');if(label)label.hidden=draft[phase]==='na';}
 }
 function togglePhase(key,enabled){
@@ -246,6 +262,8 @@ document.addEventListener('click',e=>{
  const filterButton=e.target.closest('[data-filter]');if(filterButton){filter=filterButton.dataset.filter;render();}
  const closer=e.target.closest('[data-close]');if(closer)$('#'+closer.dataset.close).close();
  const completed=e.target.closest('[data-completed]');if(completed)openCompleted(completed.dataset.completed);
+ const addWindows=e.target.closest('[data-add-windows]');if(addWindows)addWindowsToProject(addWindows.dataset.addWindows,addWindows);
+ const showWindows=e.target.closest('[data-show-windows]');if(showWindows)showProjectWindows(showWindows.dataset.showWindows);
  const project=e.target.closest('[data-open-project]');if(project)openProject(project.dataset.openProject);
  const edit=e.target.closest('[data-edit]');if(edit)openJob(edit.dataset.edit);
  const status=e.target.closest('[data-status]');if(status)handleStatusClick(status);
