@@ -24,6 +24,11 @@ FIELDS = {
     'cutting': ['waiting', 'active', 'done', 'blocked', 'na'],
     'machining': ['waiting', 'active', 'done', 'blocked', 'na'],
     'punching': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'window_cutting': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'window_punching': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'window_assembly': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'window_packing': ['waiting', 'active', 'done', 'blocked', 'na'],
+    'windows_dispatch': ['waiting', 'done', 'blocked', 'na'],
     'assembly': ['waiting', 'active', 'done', 'blocked', 'na'],
     'packing': ['waiting', 'active', 'done', 'blocked', 'na'],
     'sheet': ['waiting', 'ordered', 'manufacturing', 'awaiting_paint', 'painting', 'done', 'blocked', 'na'],
@@ -40,10 +45,12 @@ FIELDS = {
     'caps_dispatch': ['waiting', 'done', 'blocked', 'na'],
     'subcaps_dispatch': ['waiting', 'done', 'blocked', 'na'],
 }
+WINDOW_PHASES = ('window_cutting', 'window_punching', 'window_assembly', 'window_packing')
 SHIPMENTS = (('sheet', 'sheet_dispatch'), ('raw_sheet', 'raw_sheet_dispatch'),
              ('anchors_status', 'anchors_dispatch'), ('small_material_status', 'small_material_dispatch'),
              ('caps_status', 'caps_dispatch'), ('subcaps_status', 'subcaps_dispatch'))
-LABELS = {'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
+LABELS = {'with_windows': 'Okna v fasadi', 'window_cutting': 'Okna – razrez', 'window_punching': 'Okna – štancanje',
+          'window_assembly': 'Okna – sestavljanje', 'window_packing': 'Okna – pakiranje', 'windows_dispatch': 'Odprema oken v fasadi', 'documentation': 'Dokumentacija', 'material': 'Material', 'cutting': 'Razrez',
           'machining': 'Obdelava', 'punching': 'Štancanje', 'job_type': 'Vrsta naloga', 'assembly': 'Sestavljanje', 'packing': 'Pakiranje',
           'sheet': 'Barvana pločevina', 'raw_sheet': 'Surova pločevina', 'dispatch': 'Odprema fasade',
           'sheet_dispatch': 'Odprema barvane pločevine', 'raw_sheet_dispatch': 'Odprema surove pločevine', 'code': 'Nalog', 'title': 'Objekt',
@@ -105,7 +112,7 @@ def init():
             if 'small_material' not in values:
                 values['small_material'] = ''
                 changed = True
-            for field, default in (('job_type', 'facade'), ('punching', 'na'), ('caps', ''), ('subcaps', ''), ('caps_status', 'na'), ('subcaps_status', 'na'), ('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
+            for field, default in (('with_windows', False), ('window_cutting', 'na'), ('window_punching', 'na'), ('window_assembly', 'na'), ('window_packing', 'na'), ('windows_dispatch', 'na'), ('job_type', 'facade'), ('punching', 'na'), ('caps', ''), ('subcaps', ''), ('caps_status', 'na'), ('subcaps_status', 'na'), ('anchors', ''), ('sheet_papers_date', ''), ('raw_sheet_papers_date', ''), ('anchors_status', 'na' if values['archived'] else 'waiting'),
                                    ('small_material_status', 'na' if values['archived'] else 'waiting')):
                 if field not in values:
                     values[field] = default
@@ -125,7 +132,7 @@ def init():
 
 
 def fully_shipped(values):
-    return values['dispatch'] == 'done' and all(
+    return values['dispatch'] == 'done' and (not values.get('with_windows') or values.get('windows_dispatch') == 'done') and all(
         values.get(stage, 'na') == 'na' or values.get(shipping, 'na') == 'done'
         for stage, shipping in SHIPMENTS)
 
@@ -133,6 +140,20 @@ def fully_shipped(values):
 def shipment_patch(values, patch):
     """Derive shipping state without discarding a partially delivered order."""
     result = {**values, **patch}
+    if result.get('with_windows'):
+        if not values.get('with_windows'):
+            for field in WINDOW_PHASES:
+                if field not in patch and result[field] == 'na':
+                    patch[field] = 'waiting'
+        if result['windows_dispatch'] == 'na':
+            patch['windows_dispatch'] = 'waiting'
+        if any(field in patch and patch[field] != values[field] and patch[field] not in ('done', 'na') for field in WINDOW_PHASES) and values['windows_dispatch'] == 'done' and 'windows_dispatch' not in patch:
+            patch['windows_dispatch'] = 'waiting'
+    else:
+        for field in (*WINDOW_PHASES, 'windows_dispatch'):
+            if result[field] != 'na':
+                patch[field] = 'na'
+    result.update(patch)
     for stage, shipping in SHIPMENTS:
         if result[stage] == 'na' and result.get(shipping) != 'na':
             patch[shipping] = 'na'
@@ -147,7 +168,7 @@ def shipment_patch(values, patch):
         result.update(patch)
     if patch.get('archived') is True and not fully_shipped({**values, **patch}):
         raise Problem(400, 'Nalog ostane aktiven, dokler niso odpremljeni glavni izdelek in vsi drugi potrebni deli.')
-    if ({'dispatch'} | {key for pair in SHIPMENTS for key in pair}) & patch.keys():
+    if ({'dispatch', 'with_windows', 'windows_dispatch', *WINDOW_PHASES} | {key for pair in SHIPMENTS for key in pair}) & patch.keys():
         patch['archived'] = fully_shipped(result)
     return patch
 
@@ -165,16 +186,16 @@ class Problem(Exception):
 def validate(data, create=False):
     if not isinstance(data, dict):
         raise Problem(400, 'Neveljavni podatki.')
-    allowed = set(FIELDS) | {'job_type', 'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'caps', 'subcaps', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
+    allowed = set(FIELDS) | {'with_windows', 'job_type', 'code', 'title', 'due', 'owner', 'notes', 'anchors', 'small_material', 'caps', 'subcaps', 'sheet_papers_date', 'raw_sheet_papers_date', 'archived'}
     if set(data) - allowed:
         raise Problem(400, 'Neznano polje.')
     for key, value in data.items():
         if key in FIELDS:
             if value not in FIELDS[key]:
                 raise Problem(400, 'Neveljaven status.')
-        elif key == 'archived':
+        elif key in ('archived', 'with_windows'):
             if type(value) is not bool:
-                raise Problem(400, 'Neveljaven arhiv.')
+                raise Problem(400, 'Neveljavna oznaka.')
         else:
             limit = 4000 if key in ('notes', 'anchors', 'small_material', 'caps', 'subcaps') else 160
             if not isinstance(value, str) or len(value) > limit:
@@ -316,10 +337,14 @@ class Handler(BaseHTTPRequestHandler):
             if path == '/api/jobs' and self.command == 'POST':
                 clean = validate(data, create=True)
                 values = {k: 'waiting' for k in FIELDS}
-                values.update({'job_type': 'facade', 'punching': 'na', 'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'caps': '', 'subcaps': '', 'caps_status': 'na', 'subcaps_status': 'na', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
+                values.update({'with_windows': False, 'window_cutting': 'na', 'window_punching': 'na', 'window_assembly': 'na', 'window_packing': 'na', 'windows_dispatch': 'na', 'job_type': 'facade', 'punching': 'na', 'code': '', 'title': '', 'due': '', 'owner': '', 'notes': '', 'caps': '', 'subcaps': '', 'caps_status': 'na', 'subcaps_status': 'na', 'anchors': '', 'small_material': '', 'sheet_papers_date': '', 'raw_sheet_papers_date': '', 'archived': False, 'sheet': 'na', 'sheet_dispatch': 'na', 'raw_sheet': 'na', 'raw_sheet_dispatch': 'na'})
                 if clean.get('job_type') == 'windows':
                     values.update(job_type='windows', documentation='na', material='na', machining='na', punching='waiting', anchors_status='na', small_material_status='na')
+                if clean.get('with_windows'):
+                    values.update(with_windows=True, windows_dispatch='waiting', **{field: 'waiting' for field in WINDOW_PHASES})
                 values.update(clean)
+                if values['job_type'] == 'windows' and values['with_windows']:
+                    raise Problem(400, 'Okna v fasadi dodaj nalogu vrste Fasada.')
                 for text, status in (('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
                     if values[text] and status not in data:
                         values[status] = 'waiting'
@@ -345,6 +370,8 @@ class Handler(BaseHTTPRequestHandler):
                     if row['version'] != version:
                         raise Problem(409, 'Nalog je medtem spremenil sodelavec. Osveži podatke in ponovi spremembo.')
                     values = json.loads(row['payload'])
+                    if patch.get('job_type', values['job_type']) == 'windows' and patch.get('with_windows', values['with_windows']):
+                        raise Problem(400, 'Okna v fasadi dodaj nalogu vrste Fasada.')
                     for text, status in (('anchors', 'anchors_status'), ('small_material', 'small_material_status'), ('caps', 'caps_status'), ('subcaps', 'subcaps_status')):
                         if text in patch and patch[text] != values[text] and (values[status] == 'done' or (text in ('caps', 'subcaps') and values[status] == 'na' and patch[text])) and status not in patch:
                             patch[status] = 'waiting'
