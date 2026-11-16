@@ -13,7 +13,7 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='manufacturing', subcaps_status='manufacturing', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(job_type='facade', punching='na', anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='manufacturing', subcaps_status='manufacturing', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
@@ -21,12 +21,12 @@ def sample(i, code, title, offset, **statuses):
 seeds = [
     sample(1, 'SDe 11', 'Fasada · severni del', 2, cutting='done', machining='active', sheet='awaiting_paint', dispatch='done', raw_sheet='done', raw_sheet_dispatch='done'),
     sample(2, 'SDe 12', 'Aluminijasta vrata · pritličje', 4, material='blocked', raw_sheet='ordered', notes='Primer zastoja: manjkajo profili za vrata.'),
-    sample(3, 'SDe 15', 'Okna · 1. nadstropje', 1, cutting='done', machining='done', assembly='done', packing='done', sheet='done'),
+    sample(3, 'OK 15', 'Okna · 1. nadstropje', 1, job_type='windows', documentation='na', material='na', cutting='done', machining='na', punching='active', assembly='waiting', packing='waiting', anchors_status='na', anchors_dispatch='na', small_material_status='na', small_material_dispatch='na', caps_status='na', caps_dispatch='na', subcaps_status='na', subcaps_dispatch='na'),
     sample(4, 'SDe 16', 'Vhodna stena · objekt B', 6, material='ordered', documentation='active', sheet='manufacturing', sheet_papers_date=today.isoformat()),
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v14';
+const demoKey='delavnica-predogled-v15';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
