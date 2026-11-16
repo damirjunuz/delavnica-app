@@ -165,6 +165,24 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(j['windows_dispatch'], 'na')
         self.assertEqual(j['window_cutting'], 'na')
 
+    def test_direct_add_windows_retains_progress_on_repeat(self):
+        c = self.login()
+        j = self.create(c, cutting='done', machining='active', notes='Fasada že v izdelavi')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'with_windows': True}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['with_windows'])
+        self.assertEqual(j['window_punching'], 'waiting')
+        self.assertEqual(j['machining'], 'active')
+        self.assertEqual(j['notes'], 'Fasada že v izdelavi')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'window_cutting': 'done'}, c)
+        self.assertEqual(status, 200)
+        stale_version = j['version']
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'with_windows': True}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['window_cutting'], 'done')
+        self.assertEqual(j['cutting'], 'done')
+        self.assertEqual(self.request('PATCH', '/api/jobs/' + j['id'], {'version': stale_version, 'with_windows': True}, c)[0], 409)
+
     def test_mixed_windows_can_ship_first_and_skip_a_phase(self):
         c = self.login()
         j = self.create(c, with_windows=True, window_punching='na')
