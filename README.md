@@ -194,4 +194,5 @@ Obstoječim nalogom se okna ne dodajo samodejno. Lahko jih vključiš tudi v obs
 
 Odpri projekt vrste **Fasada** in na vrhu klikni **＋ Dodaj okna v fasado**. Gumb okna takoj shrani v isti projekt in odpre njihov razdelek; obrazca za urejanje ni treba odpirati ali posebej shranjevati. Dodajanje ne spreminja faz fasade. Če so okna že dodana, se pokaže **☑ Pokaži okna v fasadi**. Napaka pri shranjevanju se izpiše pod gumbom, ob sočasni spremembi pa se zahteva osvežitev.
 
-V urejanju je kljukica **Okna v fasadi** prestavljena na vrh izbire faz. Povzetek fasade in oznaka kartice kažeta **V izdelavi**, dokler izbrane faze izdelave niso zaključene; **Čaka odpremo** se pokaže šele po njih. Zagon nove kode preveri z `curl -sS http://127.0.0.1:3111/health`; ta različica vrne tudi `"version": "2026.11.16.4"`.
+V urejanju je kljukica **Okna v fasadi** prestavljena na vrh izbire faz. Povzetek fasade in oznaka kartice kažeta **V izdelavi**, dokler izbrane faze izdelave niso zaključene; **Čaka odpremo** se pokaže šele po njih.
+Pri barvani pločevini je v odprtem projektu gumb **🎨 Označi: na barvanju**. En klik shrani status in ga obarva vijolično. Surova pločevina nima faze barvanja. Trenutna različica v `/health` je `2026.11.16.5`.
