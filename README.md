@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je enaindvajset integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je petindvajset integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -181,3 +181,11 @@ Pri **Nov nalog** izberi **Fasada** ali **Okna**. Za okna so privzeto vključeni
 S kljukicami izberi proizvodne faze in dodatne dele, ki jih potrebuješ. Lahko dodaš dokumentacijo, material, obdelavo/CNC, sidra, drobni material, kape/podkape ter pločevino ali katero od faz izključiš. Izključene faze so »Ni potrebno«; ne vplivajo na pripravljenost ali odstotek napredka in jih ni med odprtim delom. Izbiro lahko kasneje spremeniš v urejanju naloga. Na kartici je vidna vrsta naloga; nad pregledom filtriraš **Vse vrste / Fasade / Okna**.
 
 Obstoječi nalogi dobijo vrsto **Fasada** in štancanje **Ni potrebno**; njihova prejšnja stanja in ločene odpreme ostanejo ohranjeni. Sprememba vrste obstoječega naloga ne ponastavi opravljenih faz; uporabnik ročno izbere potrebne faze. Pri novem nalogu menjava vrste uporabi predlogo, vpisani osnovni podatki pa ostanejo v obrazcu.
+
+## Okna znotraj naloga za fasado
+
+Pri nalogu vrste **Fasada** v urejanju označi **Okna v fasadi** pod »Okna v istem projektu«. S tem dobi isti projekt dodaten sklop **Okna v fasadi**: **razrez, štancanje, sestavljanje, pakiranje in ločena odprema oken**. Posamezne faze oken lahko s kljukicami izključiš. Fasada ohrani svoje faze in odpremo; izdelava oken njenih stanj ne spreminja.
+
+Odprema fasade ne odpremi oken. Projekt ostane aktiven, dokler niso odpremljena tudi vključena okna in ostali potrebni deli. Že odpremljena okna se umaknejo pod »Zaključeno«. Pri samostojnih nalogih vrste **Okna** ostanejo štiri osnovne faze kot doslej; možnost »Okna v fasadi« je za naloge vrste Fasada. V pregledu mešani projekt kaže **Fasada + okna** in je viden tako pod filtrom Fasade kot Okna.
+
+Obstoječim nalogom se okna ne dodajo samodejno. Lahko jih vključiš tudi v obstoječo ali že odpremljeno fasado: njeni statusi ostanejo ohranjeni, projekt pa se vrne med aktivne zaradi novega sklopa oken. Če možnost izključiš, se faze oken označijo kot nepotrebne; spremembe ostanejo v zgodovini.
