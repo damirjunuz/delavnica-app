@@ -20,7 +20,7 @@ const jobKindName = j => j?.job_type==='windows'?'Okna':j?.with_windows?'Fasada 
 const matchesType = j => typeFilter==='all'||(typeFilter==='windows'?j.job_type==='windows'||j.with_windows:(j.job_type||'facade')==='facade');
 const windowReady = j => !!j.with_windows&&windowPhases.every(k=>['done','na'].includes(j[k]));
 const fieldLabel = (j,key) => key==='dispatch'?'Odprema '+(j?.job_type==='windows'?'oken':'fasade'):labels[key];
-const textStatus = (field,value,j=null) => field==='dispatch'&&value==='done'&&j?.job_type==='windows'?'Okna odpremljena':special[field]?.[value] || baseStatus[value] || value;
+const textStatus = (field,value,j=null) => field==='dispatch'&&value==='done'&&j?.job_type==='windows'?'Okna odpremljena':field==='dispatch'&&value==='waiting'&&j?facadeReady(j)?'Čaka odpremo':mainProductionState(j):special[field]?.[value] || baseStatus[value] || value;
 const day = () => new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Ljubljana'}).format(new Date());
 const date = x => x ? new Intl.DateTimeFormat('sl-SI',{day:'numeric',month:'numeric',year:'numeric',timeZone:'Europe/Ljubljana'}).format(new Date(x.length===10 ? x+'T12:00:00' : x)) : 'Brez roka';
 const timestamp = x => new Intl.DateTimeFormat('sl-SI',{dateStyle:'short',timeStyle:'short',timeZone:'Europe/Ljubljana'}).format(new Date(x));
@@ -28,13 +28,14 @@ const activeKeys = j => {const keys=j.dispatch==='done'?[]:['documentation','mat
 const blocked = j => activeKeys(j).some(k=>j[k]==='blocked');
 const working = j => activeKeys(j).some(k=>['active','ordered','manufacturing','awaiting_paint','painting'].includes(j[k]));
 const facadeReady = j => ['documentation','material','cutting','machining','punching','assembly','packing'].every(k=>['done','na'].includes(j[k]));
+const mainProductionState = j => {const phases=['documentation','material','cutting','machining','punching','assembly','packing'].filter(k=>j[k]!=='na');return phases.some(k=>j[k]==='blocked')?'Zastoj':phases.some(k=>['active','ordered','manufacturing'].includes(j[k])||j[k]==='done')?'V izdelavi':'Čaka izdelavo';};
 const sheetPairs = [['sheet','sheet_dispatch','Barvana'],['raw_sheet','raw_sheet_dispatch','Surova']];
 const otherPairs=[['anchors_status','anchors_dispatch','Sidra'],['small_material_status','small_material_dispatch','Drobni material'],['caps_status','caps_dispatch','Kape'],['subcaps_status','subcaps_dispatch','Podkape']];
 const shipmentPairs=[...sheetPairs,...otherPairs];
 const allShipped = j => j.dispatch==='done'&&(!j.with_windows||j.windows_dispatch==='done')&&shipmentPairs.every(([stage,shipping])=>j[stage]==='na'||j[shipping]==='done');
 const ready = j => (j.with_windows&&j.windows_dispatch!=='done'&&windowReady(j))||(j.dispatch!=='done'&&facadeReady(j))||shipmentPairs.some(([stage,shipping])=>j[stage]==='done'&&j[shipping]!=='done');
 const partial = j => !j.archived&&(j.dispatch==='done'||(j.with_windows&&j.windows_dispatch==='done')||shipmentPairs.some(([,shipping])=>j[shipping]==='done'));
-const shipmentSummary = j => {const parts=[...(j.dispatch==='done'?[]:[productName(j)+' čaka odpremo']),...shipmentPairs.filter(([stage,shipping])=>j[stage]!=='na'&&j[shipping]!=='done').map(([stage,,label])=>label.toLocaleLowerCase('sl')+' '+(j[stage]==='done'?'čaka odpremo':textStatus(stage,j[stage]).toLocaleLowerCase('sl')))];if(j.with_windows&&j.windows_dispatch!=='done')parts.push('okna '+(windowReady(j)?'izdelana – čaka odpremo':windowPhases.some(k=>j[k]==='blocked')?'– zastoj':windowPhases.some(k=>j[k]==='active'||j[k]==='done')?'v izdelavi':'čakajo izdelavo'));return parts.length?'Odprto: '+parts.join(' · '):'Vse odpremljeno';};
+const shipmentSummary = j => {const parts=[...(j.dispatch==='done'?[]:[productName(j)+' '+(facadeReady(j)?'čaka odpremo':mainProductionState(j).toLocaleLowerCase('sl'))]),...shipmentPairs.filter(([stage,shipping])=>j[stage]!=='na'&&j[shipping]!=='done').map(([stage,,label])=>label.toLocaleLowerCase('sl')+' '+(j[stage]==='done'?'čaka odpremo':textStatus(stage,j[stage]).toLocaleLowerCase('sl')))];if(j.with_windows&&j.windows_dispatch!=='done')parts.push('okna '+(windowReady(j)?'izdelana – čaka odpremo':windowPhases.some(k=>j[k]==='blocked')?'– zastoj':windowPhases.some(k=>j[k]==='active'||j[k]==='done')?'v izdelavi':'čakajo izdelavo'));return parts.length?'Odprto: '+parts.join(' · '):'Vse odpremljeno';};
 function syncDraftShipping(){for(const [stage,shipping] of shipmentPairs){if(draft[stage]==='na')draft[shipping]='na';else if(draft[shipping]==='na')draft[shipping]='waiting';}if(!draft.with_windows){for(const key of windowPhases)draft[key]='na';draft.windows_dispatch='na';}else if(draft.windows_dispatch==='na')draft.windows_dispatch='waiting';}
 
 const statusButton = (j,k,detail=false) => `<button type="button" class="status ${esc(j[k])}" data-${detail?'draft':'status'}="${k}" data-id="${esc(j.id)}" aria-label="${esc(fieldLabel(j,k)+': '+textStatus(k,j[k],j)+'. Spremeni status naloga '+j.code)}">${esc(textStatus(k,j[k],j))}</button>`;
@@ -102,8 +103,8 @@ function render(){
 function projectCard(j){
  const needed=fields.filter(k=>j[k]!=='na'),done=needed.filter(k=>j[k]==='done').length;
  const late=j.due&&j.due<day()&&!j.archived;
- const state=j.archived?'Odpremljeno':blocked(j)?'Zastoj':partial(j)?'Delno odpremljeno':ready(j)?'Čaka odpremo':working(j)?'V izdelavi':'Čaka';
- const tone=j.archived?'done':blocked(j)?'blocked':partial(j)||working(j)?'active':ready(j)?'done':'waiting';
+ const state=j.archived?'Odpremljeno':blocked(j)?'Zastoj':j.dispatch!=='done'&&mainProductionState(j)==='V izdelavi'?'V izdelavi':partial(j)?'Delno odpremljeno':ready(j)?'Čaka odpremo':working(j)?'V izdelavi':'Čaka';
+ const tone=j.archived?'done':blocked(j)?'blocked':state==='V izdelavi'||partial(j)?'active':ready(j)?'done':'waiting';
  return `<button type="button" class="project-card" data-open-project="${esc(j.id)}" aria-label="Odpri projekt ${esc(j.code+' · '+j.title)}"><span class="card-top"><strong>${esc(j.code)}</strong><span class="card-state ${tone}">${state}</span></span><span class="card-job-type">${jobKindName(j)}</span><span class="card-title">${esc(j.title)}</span><span class="card-meta"><span class="${late?'card-late':''}">${late?'⚠ ':''}${esc(date(j.due))}</span><span>${esc(j.owner||'Brez odgovorne osebe')}</span></span><span class="card-progress"><span>Faze ${done} / ${needed.length}</span><span>${Math.round(done/Math.max(needed.length,1)*100)} %</span></span><span class="progress-track"><span class="progress-fill p${Math.round(done/Math.max(needed.length,1)*10)}"></span></span>${partial(j)?'<span class="card-shipment">'+esc(shipmentSummary(j))+'</span>':''}<span class="card-open">Odpri projekt <span aria-hidden="true">→</span></span></button>`;
 }
 function openProject(id){
