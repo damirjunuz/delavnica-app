@@ -126,7 +126,7 @@ function renderProject(){
  const stage=k=>`<div class="project-stage"><span>${esc(fieldLabel(j,k))}</span>${statusButton(j,k)}</div>`;
  const section=(title,body)=>body?`<section class="project-section"><h2>${title}</h2>${body}</section>`:'';
  const materialGroup=([key,shipping,label],full=false)=>`<div class="project-material"><h3>${esc(label)}</h3><p class="project-text">${esc(j[key.replace('_status','')]||'Seznam še ni vpisan.')}</p>${warehouseActions(j,key,full)}</div>`;
- const sheetGroup=([key,shipping,label],full=false)=>`<div class="project-sheet"><h3>${esc(label)} pločevina</h3>${papersButton(j,key)}<div class="project-stage-grid">${stage(key)}${stage(shipping)}</div></div>`;
+ const sheetGroup=([key,shipping,label],full=false)=>`<div class="project-sheet"><h3>${esc(label)} pločevina</h3>${papersButton(j,key)}<div class="project-stage-grid">${stage(key)}${stage(shipping)}</div>${!full&&key==='sheet'&&!['painting','done','na'].includes(j.sheet)?`<button type="button" class="sheet-paint-action" data-sheet-paint="${esc(j.id)}">🎨 Označi: na barvanju</button>`:''}</div>`;
  const isSheet=pair=>sheetPairs.some(([key])=>key===pair[0]);
  const pendingMaterial=work.pending.filter(pair=>!isSheet(pair));
  const activeSections=(j.with_windows&&j.windows_dispatch!=='done'?windowSection(j):'')+section('Izdelava '+(j.job_type==='windows'?'oken':'fasade'),work.production.length?'<div class="project-stage-grid">'+work.production.map(stage).join('')+'</div>':'')+section('Skladišče',pendingMaterial.filter(([key])=>['anchors_status','small_material_status'].includes(key)).map(pair=>materialGroup(pair)).join(''))+section('Kape in podkape',pendingMaterial.filter(([key])=>['caps_status','subcaps_status'].includes(key)).map(pair=>materialGroup(pair)).join(''))+section('Pločevina',work.pending.filter(isSheet).map(pair=>sheetGroup(pair)).join(''))+(j.dispatch==='done'?'':section(fieldLabel(j,'dispatch'),statusButton(j,'dispatch')));
@@ -244,6 +244,13 @@ async function markPrepared(button){
  catch(e){toast(e.message,true);if(e.status===409)await load().catch(()=>{});}
  finally{button.disabled=false;}
 }
+async function markSheetPainting(button){
+ const j=jobs.find(x=>x.id===button.dataset.sheetPaint);if(!j||j.sheet_dispatch==='done'||['na','painting','done'].includes(j.sheet))return;
+ button.disabled=true;
+ try{await api('/api/jobs/'+j.id,'PATCH',{version:j.version,sheet:'painting'});toast('Barvana pločevina je na barvanju.');await load();}
+ catch(e){toast(e.message,true);if(e.status===409)await load().catch(()=>{});}
+ finally{button.disabled=false;}
+}
 $('#loginForm').addEventListener('submit',async e=>{
  e.preventDefault();const form=e.currentTarget,button=form.querySelector('button');button.disabled=true;$('#loginError').textContent='';
  try{const res=await api('/api/login','POST',{actor:form.actor.value,password:form.password.value});form.password.value='';await enter(res.actor);}
@@ -268,6 +275,7 @@ document.addEventListener('click',e=>{
  const project=e.target.closest('[data-open-project]');if(project)openProject(project.dataset.openProject);
  const edit=e.target.closest('[data-edit]');if(edit)openJob(edit.dataset.edit);
  const status=e.target.closest('[data-status]');if(status)handleStatusClick(status);
+ const sheetPaint=e.target.closest('[data-sheet-paint]');if(sheetPaint)markSheetPainting(sheetPaint);
  const draftButton=e.target.closest('[data-draft]');if(draftButton)openStatus(draftButton.dataset.id,draftButton.dataset.draft,true);
  const papers=e.target.closest('[data-papers]');if(papers)openPapers(papers.dataset.id,papers.dataset.papers);
  const selected=e.target.closest('[data-choice]');if(selected)selectStatus(selected.dataset.choice);
