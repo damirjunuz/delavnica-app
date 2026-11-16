@@ -97,7 +97,7 @@ Prva različica ne vsebuje nalaganja dokumentov, e-pošte, n8n integracij, zalog
 
 ## Preverjanje tega paketa
 
-Uspešnih je petindvajset integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
+Uspešnih je šestindvajset integracijskih preizkusov, vključno z ločeno odpremo, odpremo pločevine pred fasado ter nadgradnjo starih nalogov: prijava/odjava in preverjanje izvora, skupni podatki in zgodovina, sočasno urejanje brez prepisovanja, odprema/arhiv/vrnitev, zavrnitev neveljavnih podatkov ter ohranitev podatkov po ponovnem zagonu. Preverjena sta tudi sintaksa JavaScripta in prevajanje Pythona. Vizualnega preizkusa v brskalniku v pripravljalnem okolju ni bilo mogoče dokončati. Docker gradnja in namestitev na ciljnem Hetzner strežniku še nista preverjeni.
 
 ## Nadgradnja na ločeno odpremo
 
@@ -189,3 +189,9 @@ Pri nalogu vrste **Fasada** v urejanju označi **Okna v fasadi** pod »Okna v is
 Odprema fasade ne odpremi oken. Projekt ostane aktiven, dokler niso odpremljena tudi vključena okna in ostali potrebni deli. Že odpremljena okna se umaknejo pod »Zaključeno«. Pri samostojnih nalogih vrste **Okna** ostanejo štiri osnovne faze kot doslej; možnost »Okna v fasadi« je za naloge vrste Fasada. V pregledu mešani projekt kaže **Fasada + okna** in je viden tako pod filtrom Fasade kot Okna.
 
 Obstoječim nalogom se okna ne dodajo samodejno. Lahko jih vključiš tudi v obstoječo ali že odpremljeno fasado: njeni statusi ostanejo ohranjeni, projekt pa se vrne med aktivne zaradi novega sklopa oken. Če možnost izključiš, se faze oken označijo kot nepotrebne; spremembe ostanejo v zgodovini.
+
+## Neposreden gumb za dodajanje oken
+
+Odpri projekt vrste **Fasada** in na vrhu klikni **＋ Dodaj okna v fasado**. Gumb okna takoj shrani v isti projekt in odpre njihov razdelek; obrazca za urejanje ni treba odpirati ali posebej shranjevati. Dodajanje ne spreminja faz fasade. Če so okna že dodana, se pokaže **☑ Pokaži okna v fasadi**. Napaka pri shranjevanju se izpiše pod gumbom, ob sočasni spremembi pa se zahteva osvežitev.
+
+V urejanju je kljukica **Okna v fasadi** prestavljena na vrh izbire faz. Zagon nove kode preveri z `curl -sS http://127.0.0.1:3111/health`; ta različica vrne tudi `"version": "2026.11.16.3"`.
