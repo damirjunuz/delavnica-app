@@ -13,20 +13,20 @@ def sample(i, code, title, offset, **statuses):
                 code=code, title=title, owner='Damir' if i % 2 else 'Sodelavec',
                 due=(today + dt.timedelta(days=offset)).isoformat(),
                 archived=False,
-                **{**dict(job_type='facade', punching='na', anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='manufacturing', subcaps_status='manufacturing', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
+                **{**dict(with_windows=False, window_cutting='na', window_punching='na', window_assembly='na', window_packing='na', windows_dispatch='na', job_type='facade', punching='na', anchors_dispatch='waiting', small_material_dispatch='waiting', caps_dispatch='waiting', subcaps_dispatch='waiting', caps='Kape – 20 kos', subcaps='Podkape – 20 kos', caps_status='manufacturing', subcaps_status='manufacturing', sheet_papers_date='', raw_sheet_papers_date='', anchors='Sidra SDe 12 – 12 kos', anchors_status='done', small_material_status='done', small_material='Vijaki M8 – 24 kos\nSidra – 12 kos', notes='Izmišljen primer za predogled.', documentation='done', material='done', cutting='waiting',
                           machining='waiting', assembly='waiting', packing='waiting',
                           sheet_dispatch='waiting' if statuses.get('sheet','na')!='na' else 'na', raw_sheet='na', raw_sheet_dispatch='waiting' if statuses.get('raw_sheet','na')!='na' else 'na', sheet='na', dispatch='waiting'), **statuses})
 
 
 seeds = [
-    sample(1, 'SDe 11', 'Fasada · severni del', 2, cutting='done', machining='active', sheet='awaiting_paint', dispatch='done', raw_sheet='done', raw_sheet_dispatch='done'),
+    sample(1, 'SDe 11', 'Fasada · severni del', 2, cutting='done', machining='active', sheet='awaiting_paint', dispatch='done', with_windows=True, window_cutting='done', window_punching='active', window_assembly='waiting', window_packing='waiting', windows_dispatch='waiting', raw_sheet='done', raw_sheet_dispatch='done'),
     sample(2, 'SDe 12', 'Aluminijasta vrata · pritličje', 4, material='blocked', raw_sheet='ordered', notes='Primer zastoja: manjkajo profili za vrata.'),
     sample(3, 'OK 15', 'Okna · 1. nadstropje', 1, job_type='windows', documentation='na', material='na', cutting='done', machining='na', punching='active', assembly='waiting', packing='waiting', anchors_status='na', anchors_dispatch='na', small_material_status='na', small_material_dispatch='na', caps_status='na', caps_dispatch='na', subcaps_status='na', subcaps_dispatch='na'),
     sample(4, 'SDe 16', 'Vhodna stena · objekt B', 6, material='ordered', documentation='active', sheet='manufacturing', sheet_papers_date=today.isoformat()),
     sample(5, 'SDe 17', 'Steklena stena · delavnica', 3, cutting='done', machining='done', assembly='active'),
 ]
 adapter = r'''
-const demoKey='delavnica-predogled-v15';
+const demoKey='delavnica-predogled-v16';
 const demoSeeds=__SEEDS__;
 let demoState;
 try{demoState=JSON.parse(localStorage.getItem(demoKey));}catch{}
@@ -53,10 +53,11 @@ async function api(path,method='GET',body){
   const patch={...body};delete patch.version;
   for(const [text,status] of [['anchors','anchors_status'],['small_material','small_material_status'],['caps','caps_status'],['subcaps','subcaps_status']])if(text in patch&&patch[text]!==j[text]&&(j[status]==='done'||(['caps','subcaps'].includes(text)&&j[status]==='na'&&patch[text]))&&!(status in patch))patch[status]='waiting';
   for(const [preparation,shipping] of shipmentPairs)if(preparation in patch&&patch[preparation]!==j[preparation]&&!['done','na'].includes(patch[preparation])&&j[shipping]==='done'&&!(shipping in patch))patch[shipping]='waiting';
+  const mixed={...j,...patch};if(!mixed.with_windows){for(const k of [...windowPhases,'windows_dispatch'])patch[k]='na';}else{if(!j.with_windows)for(const k of windowPhases)if(!(k in patch)&&mixed[k]==='na')patch[k]='waiting';if(mixed.windows_dispatch==='na')patch.windows_dispatch='waiting';if(windowPhases.some(k=>k in patch&&patch[k]!==j[k]&&!['done','na'].includes(patch[k]))&&j.windows_dispatch==='done'&&!('windows_dispatch'in patch))patch.windows_dispatch='waiting';}
   const next={...j,...patch};
   for(const [stage,shipping] of shipmentPairs){if(next[stage]==='na'&&next[shipping]!=='na')patch[shipping]='na';else if(next[stage]!=='na'&&next[shipping]==='na')patch[shipping]='waiting';}
   if(patch.archived===false&&j.archived&&allShipped(j))patch.dispatch='waiting';
-  if(['dispatch',...shipmentPairs.flatMap(([stage,shipping])=>[stage,shipping])].some(k=>k in patch)){const n={...j,...patch};patch.archived=allShipped(n);}
+  if(['dispatch','with_windows','windows_dispatch',...windowPhases,...shipmentPairs.flatMap(([stage,shipping])=>[stage,shipping])].some(k=>k in patch)){const n={...j,...patch};patch.archived=allShipped(n);}
   for(const [k,v]of Object.entries(patch))if(j[k]!==v){log(j,k,j[k],v);j[k]=v;}
   j.version++;j.updated=stamp;saveDemo();return structuredClone(j);
  }
