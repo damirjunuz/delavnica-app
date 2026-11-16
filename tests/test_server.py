@@ -78,6 +78,52 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(self.request('POST', '/api/logout', {}, cookie)[0], 200)
         self.assertEqual(self.request('GET', '/api/jobs', cookie=cookie)[0], 401)
 
+    def test_windows_template_and_lifecycle(self):
+        c = self.login()
+        j = self.create(c, job_type='windows')
+        self.assertEqual(j['job_type'], 'windows')
+        for key in ('cutting', 'punching', 'assembly', 'packing'):
+            self.assertEqual(j[key], 'waiting')
+        for key in ('documentation', 'material', 'machining', 'anchors_status', 'caps_status', 'sheet'):
+            self.assertEqual(j[key], 'na')
+        for key in ('cutting', 'punching', 'assembly', 'packing'):
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], key: 'active'}, c)
+            self.assertEqual(status, 200)
+            status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], key: 'done'}, c)
+            self.assertEqual(status, 200)
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['archived'])
+
+    def test_windows_selected_phases_and_separate_extra_delivery(self):
+        c = self.login()
+        j = self.create(c, job_type='windows', punching='na', packing='na', small_material='Vijaki – 20 kos', small_material_status='waiting')
+        self.assertEqual(j['punching'], 'na')
+        self.assertEqual(j['packing'], 'na')
+        self.assertEqual(j['small_material_dispatch'], 'waiting')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertFalse(j['archived'])
+        self.assertEqual(j['job_type'], 'windows')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {
+            'version': j['version'], 'small_material_status': 'done', 'small_material_dispatch': 'done'}, c)
+        self.assertEqual(status, 200)
+        self.assertTrue(j['archived'])
+
+    def test_change_type_preserves_progress_and_validates_type(self):
+        c = self.login()
+        j = self.create(c, cutting='done', machining='active')
+        self.assertEqual(j['punching'], 'na')
+        status, j, _ = self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], 'job_type': 'windows'}, c)
+        self.assertEqual(status, 200)
+        self.assertEqual(j['cutting'], 'done')
+        self.assertEqual(j['machining'], 'active')
+        self.assertEqual(j['punching'], 'na')
+        for bad in ({'job_type': 'unknown'}, {'punching': 'ordered'}):
+            self.assertEqual(self.request('PATCH', '/api/jobs/' + j['id'], {'version': j['version'], **bad}, c)[0], 400)
+        events = self.request('GET', '/api/jobs/' + j['id'] + '/history', cookie=c)[1]['events']
+        self.assertEqual(events[0]['field'], 'job_type')
+
     def test_shared_state_and_audit(self):
         a, b = self.login('Test Vodja'), self.login('Test Sodelavec')
         j = self.create(a, notes='Manjkajo stekla')
@@ -357,6 +403,8 @@ class WorkshopTests(unittest.TestCase):
                 del payload['raw_sheet_papers_date']
                 for key in ('caps', 'subcaps', 'caps_status', 'subcaps_status'):
                     del payload[key]
+                del payload['job_type']
+                del payload['punching']
                 db.execute('UPDATE jobs SET payload=? WHERE id=?', (json.dumps(payload), j['id']))
         self.process.terminate()
         self.process.communicate(timeout=10)
@@ -376,6 +424,8 @@ class WorkshopTests(unittest.TestCase):
         self.assertEqual(jobs[complete['id']]['raw_sheet_papers_date'], '')
         self.assertEqual(jobs[active['id']]['caps_status'], 'na')
         self.assertEqual(jobs[complete['id']]['subcaps_status'], 'na')
+        self.assertEqual(jobs[active['id']]['job_type'], 'facade')
+        self.assertEqual(jobs[complete['id']]['punching'], 'na')
 
     def test_invalid_data_leaves_record_unchanged(self):
         c = self.login()
