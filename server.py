@@ -13,7 +13,7 @@ from http import cookies
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
-APP_VERSION = '2026.11.16.3'
+APP_VERSION = '2026.11.16.4'
 ROOT = Path(__file__).parent
 DATA = Path(os.environ.get('DATA_DIR', '/data'))
 PASSWORD = os.environ.get('APP_PASSWORD', '')
